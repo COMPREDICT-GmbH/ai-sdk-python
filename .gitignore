@@ -1,0 +1,5 @@
+.env
+*.json
+*.pem
+venv/*
+.idea/
