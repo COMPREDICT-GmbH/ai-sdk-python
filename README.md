@@ -181,8 +181,7 @@ compredict_client.failOnError()
 
 try:
     orders = compredict_client.getAlgorithms()
-raise:
-    compredict.exceptions.CompredictError as e:
+raise compredict.exceptions.CompredictError as e:
     ...
 ~~~
 
