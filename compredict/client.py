@@ -130,11 +130,23 @@ class api:
         :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
         :return: Prediction if results are return instantly or Task otherwise.
         """
-        params = dict(evaluate=evaluate, encrypt=encrypt)
+        params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt)
         files = {"features": ('features.json', json_dump(data))}
         response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id), data=params, files=files)
         resource = 'Task' if 'job_id' in response else 'Result'
         return self.__map_resource(resource, response)
+
+    def __process_evaluate(self, evaluate):
+        """
+        Check the type of evaluate parameter and parse it accordingly.
+
+        :param evaluate: evaluation of the algorithm
+        :type evaluate: bool|dict|string
+        :return: bool|string
+        """
+        if isinstance(evaluate, dict):
+            return json_dump(evaluate)
+        return evaluate
 
     def get_task_results(self, task_id):
         """
