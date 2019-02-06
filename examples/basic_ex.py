@@ -3,7 +3,7 @@ from compredict.resources import resources
 from time import sleep
 from environs import Env
 from sys import exit
-
+import shutil
 
 env = Env()
 env.read_env()
@@ -16,6 +16,15 @@ passphrase = env("COMPREDICT_AI_CORE_PASSPHRASE", "")
 
 client = api.get_instance(token=token, callback_url=callback_url, ppk=ppk, passphrase=passphrase)
 client.fail_on_error(option=fail_on_error)
+
+# get a graph
+# algorithm = client.get_algorithm("auto-parameterization")
+# graph = algorithm.get_detailed_graph()
+# new_file = open('auto-parameterization-graph.png', 'wb')
+# shutil.copyfileobj(graph, new_file)
+# graph.close()
+
+
 algorithms = client.get_algorithms()
 
 # Check if the user has algorithms to predict

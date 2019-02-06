@@ -65,8 +65,8 @@ class Connection:
         :param request: the request made to the URL.
         :return: JSON if request is correct otherwise false.
         """
-        if '/template' in request.url:
-            _, ext = splitext(request.headers['X-Sendfile'])
+        if '/template' in request.url or '/graph' in request.url:
+            ext = '.png' if request.headers['Content-Type'] == 'image/png' else '.csv'
             response = NamedTemporaryFile(suffix=ext)
             response.write(request.content)
             response.seek(0)

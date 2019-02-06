@@ -157,6 +157,16 @@ class api:
         response = self.connection.GET('/algorithms/{}/template'.format(algorithm_id))
         return response
 
+    def get_graph(self, algorithm_id):
+        """
+        Return the graph that explains the input data to be sent for the algorithms.
+
+        :param algorithm_id: String identifier of the Algorithm.
+        :return: NamedTemporaryFile of the results.
+        """
+        response = self.connection.GET('/algorithms/{}/graph'.format(algorithm_id))
+        return response
+
     def RSA_decrypt(self, encrypted_msg, chunk_size=256):
         """
         Decrypt the encrypted message by the provided RSA private key.
