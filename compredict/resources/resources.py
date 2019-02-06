@@ -14,6 +14,9 @@ class Algorithm(BaseResource):
     def get_detailed_template(self):
         return self.client.get_template(self.id)
 
+    def get_detailed_graph(self):
+        return self.client.get_graph(self.id)
+
     def get_response_time(self):
         return self.result
 
