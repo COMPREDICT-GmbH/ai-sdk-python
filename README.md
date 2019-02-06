@@ -123,6 +123,20 @@ else:  # not a Task, it is a Result Instance
 If you set up ``callback_url`` then the results will be POSTed automatically to you once the
 calculation is finished.
 
+Each algorithm has its own evaluation methods that are used to evaluate the performance of the algorithm given the data. You can identify the evaluation metric
+by calling:
+
+~~~python
+algorithm.evaluations  # associative array.
+~~~
+
+When running the algorithm, with `evaluate = True`, then the algorithm will be evaluated by the default parameters. In order to tweek these parameters, you have to specify an associative array with the modified parameters. For example:
+
+~~~python
+evaluate = {"rainflow-counting": {"hysteresis": 0.2, "N":100000}} # evaluate name and its params
+
+result = algorithm.predict(X_test, evaluate=evaluate)
+~~~
 
 Data Privacy
 ------------
