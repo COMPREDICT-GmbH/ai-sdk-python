@@ -158,25 +158,27 @@ class api:
         response = self.connection.GET('/algorithms/tasks/{}'.format(task_id))
         return self.__map_resource('Task', response)
 
-    def get_template(self, algorithm_id):
+    def get_template(self, algorithm_id, file_type='input'):
         """
         Return the template that explains the data to be sent for the algorithms. Bear in mind, to close the file once
         done to delete it.
 
         :param algorithm_id: String identifier of the Algorithm.
+        :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
         :return: NamedTemporaryFile of the results.
         """
-        response = self.connection.GET('/algorithms/{}/template'.format(algorithm_id))
+        response = self.connection.GET('/algorithms/{}/template?type={}'.format(algorithm_id, file_type))
         return response
 
-    def get_graph(self, algorithm_id):
+    def get_graph(self, algorithm_id, file_type):
         """
         Return the graph that explains the input data to be sent for the algorithms.
 
         :param algorithm_id: String identifier of the Algorithm.
+        :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
         :return: NamedTemporaryFile of the results.
         """
-        response = self.connection.GET('/algorithms/{}/graph'.format(algorithm_id))
+        response = self.connection.GET('/algorithms/{}/graph?type={}'.format(algorithm_id, file_type))
         return response
 
     def RSA_decrypt(self, encrypted_msg, chunk_size=256):

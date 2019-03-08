@@ -11,17 +11,17 @@ class Algorithm(BaseResource):
         self._last_result = self.client.run_algorithm(self.id, data, evaluate, encrypt)
         return self.last_results
 
-    def get_detailed_template(self):
-        return self.client.get_template(self.id)
+    def get_detailed_template(self, file_type='input'):
+        return self.client.get_template(self.id, file_type)
 
-    def get_detailed_graph(self):
-        return self.client.get_graph(self.id)
+    def get_detailed_graph(self, file_type='input'):
+        return self.client.get_graph(self.id, file_type)
 
     def get_response_time(self):
         return self.result
 
-    def get_template(self):
-        return self.features_format
+    def get_template(self, file_type='input'):
+        return self.features_output if file_type == 'output' else self.features_format
 
     @property
     def last_results(self):
