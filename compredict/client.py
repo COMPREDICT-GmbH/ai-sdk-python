@@ -10,7 +10,7 @@ import base64
 @Singleton
 class api:
 
-    def __init__(self, token=None, callback_url=None, ppk=None, passphrase=None):
+    def __init__(self, token=None, callback_url=None, ppk=None, passphrase=None, url=None):
         """
         COMPREDICT's AI Core Client that will provide an interface for communication. This class is singleton.
 
@@ -24,7 +24,8 @@ class api:
             raise Exception("API Key is not in valid format!")
 
         self.callback_url = callback_url
-        self.connection = Connection(api.BASE_URL.format(api.API_VERSION), token=token)
+        url = api.BASE_URL.format(api.API_VERSION) if url is None else url
+        self.connection = Connection(url, token=token)
         self.rsa_key = None
         if ppk is not None:
             self.set_ppk(ppk, passphrase)
