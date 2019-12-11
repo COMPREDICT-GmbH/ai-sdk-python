@@ -1,12 +1,21 @@
 import os
 from setuptools import setup, find_packages
 
+
+this_dir = os.path.dirname(__file__)
+
+with open(os.path.join(this_dir, "README.md"), "rb") as fo:
+    long_description = fo.read().decode("utf8")
+
+with open(os.path.join(this_dir, 'requirements.txt')) as fo:
+    requirements = fo.read().splitlines()
+
 setup(
     # Application name:
     name="COMPREDICT-AI-SDK",
 
     # Version number (initial):
-    version="0.0.1",
+    version="0.1.1",
 
     # Application author details:
     author="Ousama Esbel",
@@ -24,12 +33,9 @@ setup(
     license="MIT",
     description="Connect Python applications with COMPREDICT AI Core.",
     keywords=["COMPREDICT", "AI", "SDK", "API", "rest"],
-
-    long_description=open(os.path.join(os.path.dirname(__file__), "README.md")).read(),
+    long_description_content_type="text/markdown",
+    long_description=long_description,
 
     # Dependent packages (distributions)
-    install_requires=[
-        "pycrypto>=1.4.0",
-        "requests>=2.1.0",
-    ],
+    install_requires=requirements,
 )
