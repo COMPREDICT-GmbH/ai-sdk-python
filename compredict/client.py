@@ -6,6 +6,8 @@ from compredict.resources import resources
 from json import dumps as json_dump
 import base64
 
+from .exceptions import ClientError
+
 
 @Singleton
 class api:
@@ -121,7 +123,7 @@ class api:
         response = self.connection.GET('/algorithms/{}'.format(algorithm_id))
         return self.__map_resource('Algorithm', response)
 
-    def run_algorithm(self, algorithm_id, data, evaluate=True, encrypt=False):
+    def run_algorithm(self, algorithm_id, data, evaluate=True, encrypt=False, callback_url=None, callback_param=None):
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
@@ -129,10 +131,20 @@ class api:
         :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
         :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
+        :param callback_url: The callback url that will override the callback url in the class.
+        :param callback_param: The callback additional parameter to be sent back when requesting the results.
         :return: Prediction if results are return instantly or Task otherwise.
         """
-        params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt)
-        files = {"features": ('features.json', json_dump(data))}
+        if encrypt is True and self.rsa_key is None:
+            raise ClientError("Please supply private key to encrypt the data")
+
+        callback_url = callback_url if callback_url is not None else self.callback_url
+        params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
+                      callback_url=callback_url, callback_param=json_dump(callback_param))
+        data = json_dump(data)
+        if encrypt:
+            data = self.RSA_encrypt(data)
+        files = {"features": ('features.json', data)}
         response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id), data=params, files=files)
         resource = 'Task' if 'job_id' in response else 'Result'
         return self.__map_resource(resource, response)
@@ -181,6 +193,37 @@ class api:
         """
         response = self.connection.GET('/algorithms/{}/graph?type={}'.format(algorithm_id, file_type))
         return response
+
+    def RSA_encrypt(self, msg, chunk_size=214):
+        """
+        Encrypt the message by the provided RSA public key.
+
+        :param msg: message that to be encrypted
+        :type msg: string
+        :param chunk_size: the chunk size used for PKCS1_OAEP decryption, it is determined by \
+        the private key length used in bytes - 42 bytes.
+        :type chunk_size: int
+        :return: Base 64 encryption of the encrypted message
+        :rtype: binray
+        """
+        if self.rsa_key is None:
+            raise Exception("Path to private key should be provided to decrypt the response.")
+
+        encrypted = b''
+        offset = 0
+        end_loop = False
+
+        while not end_loop:
+            chunk = msg[offset:offset + chunk_size]
+
+            if len(chunk) % chunk_size != 0:
+                chunk += " " * (chunk_size - len(chunk))
+                end_loop = True
+
+            encrypted += self.rsa_key.encrypt(chunk.encode())
+            offset += chunk_size
+
+        return base64.b64encode(encrypted)
 
     def RSA_decrypt(self, encrypted_msg, chunk_size=256):
         """
