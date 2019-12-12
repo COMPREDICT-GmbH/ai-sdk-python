@@ -4,3 +4,6 @@
 venv/*
 .idea/
 *.png
+dist/
+*.egg-info/
+build/

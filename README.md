@@ -10,8 +10,8 @@ Requirements
 ------------
 
 - Python >= 3.4
-- Requests >= 2.1.0
-- pycrypto >= 1.4.0
+- Requests >= 2.2.0
+- pycryptodome==3.9.4
 
 **To connect to the API with basic auth you need the following:**
 
