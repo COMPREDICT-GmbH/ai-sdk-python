@@ -1,7 +1,7 @@
 import requests
 from compredict.exceptions import *
 from tempfile import NamedTemporaryFile
-from os.path import splitext
+from .exceptions import Error
 
 
 class Connection:
@@ -76,14 +76,16 @@ class Connection:
             if self.fail_on_error:
                 raise ClientError(response)
             else:
-                self.last_error = response
+                error = Error(response, request.status_code)
+                self.last_error = error
                 return False
 
         elif 500 <= request.status_code <= 599:
             if self.fail_on_error:
                 raise ServerError(response)
             else:
-                self.last_error = response
+                error = Error(response, request.status_code)
+                self.last_error = error
                 return False
 
         return response
