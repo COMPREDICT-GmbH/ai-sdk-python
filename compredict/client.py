@@ -144,8 +144,8 @@ class api:
         data = json_dump(data)
         if encrypt:
             data = self.RSA_encrypt(data)
-        files = {"features": ('features.json', data)}
-        response = self.connection.POST('/algorithms/{}/predict2'.format(algorithm_id), data=params, files=files)
+        files = {"features": ('features.json', data, "application/json")}
+        response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id), data=params, files=files)
         resource = 'Task' if response is not False and 'job_id' in response else 'Result'
         return self.__map_resource(resource, response)
 
@@ -209,6 +209,8 @@ class api:
         if self.rsa_key is None:
             raise Exception("Path to private key should be provided to decrypt the response.")
 
+        padding = b"" if isinstance(msg, bytes) else ""
+
         encrypted = b''
         offset = 0
         end_loop = False
@@ -217,15 +219,16 @@ class api:
             chunk = msg[offset:offset + chunk_size]
 
             if len(chunk) % chunk_size != 0:
-                chunk += " " * (chunk_size - len(chunk))
+                chunk += padding * (chunk_size - len(chunk))
                 end_loop = True
 
-            encrypted += self.rsa_key.encrypt(chunk.encode())
+            chunk = chunk if isinstance(msg, bytes) else chunk.encode()
+            encrypted += self.rsa_key.encrypt(chunk)
             offset += chunk_size
 
         return base64.b64encode(encrypted)
 
-    def RSA_decrypt(self, encrypted_msg, chunk_size=256):
+    def RSA_decrypt(self, encrypted_msg, chunk_size=256, to_bytes=False):
         """
         Decrypt the encrypted message by the provided RSA private key.
 
@@ -233,6 +236,8 @@ class api:
         :type encrypted_msg: binary
         :param chunk_size: It is determined by the private key length used in bytes.
         :type chunk_size: int
+        :param to_bytes: Return bytes instead of string
+        :type to_bytes: Boolean (default False)
         :return: The decrypted message
         :rtype: string
         """
@@ -242,13 +247,13 @@ class api:
         encrypted_msg = base64.b64decode(encrypted_msg)
 
         offset = 0
-        decrypted = ""
+        decrypted = b""
 
         while offset < len(encrypted_msg):
             chunk = encrypted_msg[offset:offset + chunk_size]
 
-            decrypted += self.rsa_key.decrypt(chunk).decode()
+            decrypted += self.rsa_key.decrypt(chunk)
 
             offset += chunk_size
 
-        return decrypted
+        return decrypted.decode() if not to_bytes else decrypted
