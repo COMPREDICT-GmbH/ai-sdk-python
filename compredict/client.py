@@ -4,9 +4,15 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from compredict.resources import resources
 from json import dumps as json_dump
+from pandas import DataFrame
 import base64
+from tempfile import NamedTemporaryFile
+from os import remove
+from os.path import exists
 
 from .exceptions import ClientError
+
+CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
 
 @Singleton
@@ -123,7 +129,51 @@ class api:
         response = self.connection.GET('/algorithms/{}'.format(algorithm_id))
         return self.__map_resource('Algorithm', response)
 
-    def run_algorithm(self, algorithm_id, data, evaluate=True, encrypt=False, callback_url=None, callback_param=None):
+    def __process_data(self, data, content_type=None):
+        """
+        Process the given data and convert it to file.
+
+        :param data: The data to be sent for computation and prediction.
+        :type data: dict | str | pandas
+        :param content_type: The file content type to be converted to and sent.
+        :type content_type: string
+        :return: opened file, str, bool
+        """
+        if content_type is not None and content_type not in CONTENT_TYPES:
+            raise ValueError("`{}` is not one of the allowed content types: {}".format(content_type, CONTENT_TYPES))
+
+        if isinstance(data, str):
+            return open(data, "rb+"), "application/json", False
+
+        file = NamedTemporaryFile('wb+', delete=False)
+        if isinstance(data, dict):
+            content_type = "application/json"
+            self.__write_json_file(file, data)
+        elif isinstance(data, DataFrame):
+            if content_type is None or content_type == "application/json":
+                content_type = "application/json"
+                self.__write_json_file(file, data.to_dict("list"))
+            elif content_type == "application/parquet":
+                data.to_parquet(file.name)
+            elif content_type == "text/csv":
+                data.to_csv(file.name, sep=',')
+        return file, content_type, True
+
+    def __write_json_file(self, file, data):
+        """
+        function to write JSON into a file and point again to the top of the file for reading.
+
+        :param file: temporary file to contain the data
+        :type file: tempfile.NamedTemporaryFile
+        :param data: The data to be stored.
+        :type data: dict
+        :return: saved file.
+        """
+        file.write(json_dump(data).encode())
+        file.seek(0)
+
+    def run_algorithm(self, algorithm_id, data, evaluate=True, encrypt=False, callback_url=None,
+                      callback_param=None, file_content_type=None):
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
@@ -133,20 +183,30 @@ class api:
         :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
         :param callback_url: The callback url that will override the callback url in the class.
         :param callback_param: The callback additional parameter to be sent back when requesting the results.
+        :param file_content_type: type of data to be sent to AI Core.
         :return: Prediction if results are return instantly or Task otherwise.
         """
-        if encrypt is True and self.rsa_key is None:
-            raise ClientError("Please supply private key to encrypt the data")
 
-        callback_url = callback_url if callback_url is not None else self.callback_url
-        params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
-                      callback_url=callback_url, callback_param=json_dump(callback_param))
-        data = json_dump(data)
-        if encrypt:
-            data = self.RSA_encrypt(data)
-        files = {"features": ('features.json', data, "application/json")}
-        response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id), data=params, files=files)
-        resource = 'Task' if response is not False and 'job_id' in response else 'Result'
+        file, file_content_type, to_remove = self.__process_data(data, file_content_type)
+        try:
+            if encrypt is True and self.rsa_key is None:
+                raise ClientError("Please supply private key to encrypt the data")
+
+            callback_url = callback_url if callback_url is not None else self.callback_url
+            params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
+                          callback_url=callback_url, callback_param=json_dump(callback_param))
+            if encrypt:
+                self.RSA_encrypt(file)
+            files = {"features": ('features.json', file, file_content_type)}
+            response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id), data=params, files=files)
+            resource = 'Task' if response is not False and 'job_id' in response else 'Result'
+        except Exception as e:
+            raise ClientError(e)
+        finally:
+            if file is not None:
+                file.close()
+                if to_remove and exists(file.name):
+                    remove(file.name)
         return self.__map_resource(resource, response)
 
     def __process_evaluate(self, evaluate):
@@ -194,12 +254,12 @@ class api:
         response = self.connection.GET('/algorithms/{}/graph?type={}'.format(algorithm_id, file_type))
         return response
 
-    def RSA_encrypt(self, msg, chunk_size=214):
+    def RSA_encrypt(self, data, chunk_size=214):
         """
         Encrypt the message by the provided RSA public key.
 
-        :param msg: message that to be encrypted
-        :type msg: string
+        :param data: message of file containt the data to be encrypted
+        :type data: string | file
         :param chunk_size: the chunk size used for PKCS1_OAEP decryption, it is determined by \
         the private key length used in bytes - 42 bytes.
         :type chunk_size: int
@@ -208,6 +268,9 @@ class api:
         """
         if self.rsa_key is None:
             raise Exception("Path to private key should be provided to decrypt the response.")
+
+        is_file = hasattr(data, 'read') and hasattr(data, 'write')
+        msg = data if not is_file else data.read()
 
         padding = b"" if isinstance(msg, bytes) else ""
 
@@ -226,7 +289,14 @@ class api:
             encrypted += self.rsa_key.encrypt(chunk)
             offset += chunk_size
 
-        return base64.b64encode(encrypted)
+        encrypted = base64.b64encode(encrypted)
+
+        if is_file:
+            data.seek(0)
+            data.write(encrypted)
+            data.seek(0)
+
+        return encrypted
 
     def RSA_decrypt(self, encrypted_msg, chunk_size=256, to_bytes=False):
         """
@@ -257,3 +327,16 @@ class api:
             offset += chunk_size
 
         return decrypted.decode() if not to_bytes else decrypted
+
+    @staticmethod
+    def __is_binary(filepath):
+        """
+        Return true if the given filename appears to be binary.
+        File is considered to be binary if it contains a NULL byte.
+        FIXME: This approach incorrectly reports UTF-16 as binary.
+        """
+        with open(filepath, 'rb') as f:
+            for block in f:
+                if b'\0' in block:
+                    return True
+        return False

@@ -12,6 +12,7 @@ Requirements
 - Python >= 3.4
 - Requests >= 2.2.0
 - pycryptodome==3.9.4
+- pandas>=0.20.3,<1.0.0
 
 **To connect to the API with basic auth you need the following:**
 
@@ -69,12 +70,43 @@ print(algorithm.name)
 print(algorithm.description)
 ~~~
 
-Algorithm Prediction (POST)
------------------------------
+Algorithm RUN (POST)
+--------------------
 
-Some resources support creation of new items by posting to the collection. This
-can be done by passing an array or stdClass object representing the new
-resource to the global create method:
+Any algorithm a user has access to is different, it has different:
+
+- Input data and structure.
+- Output data.
+- Evaluation set.
+- Result instance.
+- Accepted file format.
+
+The `run` function has the following signature: 
+
+~~~python
+Task|Result = algorithm.run(data, evaluate=True, encrypt=False, callback_url=None, 
+                            callback_param=None, file_content_type=None)
+~~~
+
+- `data`: data to be processed by the algorithm, it can be:
+   - `dict`: forces the file's content type to be `application/json`
+   - `str`: path to the file to be sent, set the `file_content_type` to the mime type or empty for `application/json`
+   - `pandas`: DataFrame containing the data, set the `file_content_type` to convert the content to appropriate file. 
+- `evaluate`: to evaluate the result of the algorithm. Check `algorithm.evaluations`, *more in depth later*.
+- `encrypt`: to encrypt the data using RSA AES, *more in depth later*.
+- `callback_url`: If the result is `Task`, then AI core will send back the results to the provided URL once processed.
+- `callback_param`: additional parameters to pass when results are sent to callback url.
+- `file_content_type`: The type of data to be sent. Based on `algorithm.accepted_file_format`. it could be:
+    - `application/json`: for dict data.
+    - `text/csv`: when passing pandas DataFrame.
+    - `application/parquet`: when passing pandas's DataFrame.
+    
+Depending on the algorithm's computation requirement `algorithm.result`, the result can be:
+
+- **compredict.resources.Task**: holds a job id of the task that the user can query later to get the results.
+- **compredict.resources.Result**: contains the result of the algorithm + evaluation
+
+Example of sending data as `application/json`:
 
 ~~~python
 X_test = dict(
@@ -86,16 +118,12 @@ algorithm = compredict_client.getAlgorithm('algorithm_id')
 result = algorithm.run(X_test)
 ~~~
 
-Depending on the algorithm's computation requirement, the result can be:
-
-- **Task**: holds a job id of the task that the user can query later to get the results.
-- **Result**: contains the result of the algorithm + evaluation
-
 You can identify when the algorithm dispatches the processing to queue
-or send the results instantly by:
+or send the results instantly by checking:
 
 ~~~python
-print(algorithm.results)
+>>> print(algorithm.results)
+The request will be sent to queue for processing
 ~~~
 
 or dynamically:
@@ -103,7 +131,7 @@ or dynamically:
 ~~~python
 results = algorithm.predict(X_test, evaluate=True)
 
-if isinstance(results, resources.Task):
+if isinstance(results, compredict.resources.Task):
     print(results.job_id)
 
     while results.status != results.STATUS_FINISHED:
@@ -118,6 +146,27 @@ if isinstance(results, resources.Task):
 
 else:  # not a Task, it is a Result Instance
     print(results.predictions)
+~~~
+
+Example of sending data as `application/parquet`:
+
+~~~python
+import pandas as pd
+
+X_test = pd.DataFrame(dict(
+    feature_1=[1, 2, 3, 4],
+    feature_2=[2, 3, 4, 5]
+))
+
+algorithm = compredict_client.getAlgorithm('algorithm_id')
+result = algorithm.run(X_test, file_content_type="application/parquet")
+~~~
+
+Example of sending data from parquet file:
+
+~~~python
+algorithm = compredict_client.getAlgorithm('algorithm_id')
+result = algorithm.run("/path/to/file.parquet", file_content_type="application/parquet")
 ~~~
 
 If you set up ``callback_url`` then the results will be POSTed automatically to you once the
