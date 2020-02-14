@@ -143,7 +143,7 @@ class api:
             raise ValueError("`{}` is not one of the allowed content types: {}".format(content_type, CONTENT_TYPES))
 
         if isinstance(data, str):
-            return open(data, "rb+"), "application/json", False
+            return open(data, "rb+"), content_type, False
 
         file = NamedTemporaryFile('wb+', delete=False)
         if isinstance(data, dict):
