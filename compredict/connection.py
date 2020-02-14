@@ -42,7 +42,11 @@ class Connection:
         :return: JSON if request is correct otherwise false.
         """
         address = self.url + endpoint
-        del self.headers['Content-Type']  # no need to specify the content-type to requests
+        if files is not None:
+            if 'Content-Type' in self.headers:
+                del self.headers['Content-Type']
+        else:
+            self.headers['Content-Type'] = 'application/json'
         self.last_request = requests.post(address, files=files, data=data, headers=self.headers)
         return self.__handle_response(self.last_request)
 
