@@ -21,7 +21,7 @@ class Algorithm(BaseResource):
         return self.result
 
     def get_template(self, file_type='input'):
-        return self.features_output if file_type == 'output' else self.features_format
+        return self.output_format if file_type == 'output' else self.features_format
 
     @property
     def last_results(self):

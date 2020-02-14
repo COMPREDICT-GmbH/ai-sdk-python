@@ -15,7 +15,7 @@ setup(
     name="COMPREDICT-AI-SDK",
 
     # Version number (initial):
-    version="0.2.2",
+    version="0.2.3",
 
     # Application author details:
     author="Ousama Esbel",
