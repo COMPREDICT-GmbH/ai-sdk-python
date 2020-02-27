@@ -1,16 +1,17 @@
-from .singleton import Singleton
-from .connection import Connection
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from compredict.resources import resources
-from json import dumps as json_dump
+from json import dumps as json_dump, dump
 from pandas import DataFrame
+from pandas.io.common import _get_handle
 import base64
 from tempfile import NamedTemporaryFile
 from os import remove
 from os.path import exists
 
 from .exceptions import ClientError
+from .singleton import Singleton
+from .connection import Connection
 
 CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
@@ -129,7 +130,7 @@ class api:
         response = self.connection.GET('/algorithms/{}'.format(algorithm_id))
         return self.__map_resource('Algorithm', response)
 
-    def __process_data(self, data, content_type=None):
+    def __process_data(self, data, content_type=None, compression=None):
         """
         Process the given data and convert it to file.
 
@@ -148,32 +149,36 @@ class api:
         file = NamedTemporaryFile('wb+', delete=False)
         if isinstance(data, dict):
             content_type = "application/json"
-            self.__write_json_file(file, data)
+            self.__write_json_file(file, data, compression=compression)
         elif isinstance(data, DataFrame):
             if content_type is None or content_type == "application/json":
                 content_type = "application/json"
-                self.__write_json_file(file, data.to_dict("list"))
+                self.__write_json_file(file, data.to_dict("list"), compression=compression)
             elif content_type == "application/parquet":
-                data.to_parquet(file.name)
+                data.to_parquet(file.name, compression=compression)
             elif content_type == "text/csv":
-                data.to_csv(file.name, sep=',')
+                data.to_csv(file.name, sep=',', compression=compression)
         return file, content_type, True
 
-    def __write_json_file(self, file, data):
+    def __write_json_file(self, t_file, data, compression=None):
         """
         function to write JSON into a file and point again to the top of the file for reading.
 
-        :param file: temporary file to contain the data
-        :type file: tempfile.NamedTemporaryFile
+        :param t_file: temporary file to contain the data
+        :type t_file: tempfile.NamedTemporaryFile
         :param data: The data to be stored.
         :type data: dict
+        :param compression: JSON compression type, same compression methods as in `to_json` in pandas.
+        :type compression: string.
         :return: saved file.
         """
-        file.write(json_dump(data).encode())
-        file.seek(0)
+        file, _ = _get_handle(t_file.name, "w", compression=compression)
+        with file as f:
+            dump(data, f)
+        t_file.seek(0)
 
     def run_algorithm(self, algorithm_id, data, evaluate=True, encrypt=False, callback_url=None,
-                      callback_param=None, file_content_type=None):
+                      callback_param=None, file_content_type=None, compression=None):
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
@@ -184,17 +189,23 @@ class api:
         :param callback_url: The callback url that will override the callback url in the class.
         :param callback_param: The callback additional parameter to be sent back when requesting the results.
         :param file_content_type: type of data to be sent to AI Core.
+        :param compression: The compressed type of the data, the compression supported is what pandas supports \
+        for the file content type you will send. Compression is only supported if encrypt is false. Based on data type:
+            - if data is pandas or dict, then the compression is done by the function.
+            - if string or path, then it describes the compression of the file sent.
         :return: Prediction if results are return instantly or Task otherwise.
         """
+        if encrypt is True and self.rsa_key is None:
+            raise ClientError("Please supply private key to encrypt the data")
+        compression = compression if encrypt is False else None
 
-        file, file_content_type, to_remove = self.__process_data(data, file_content_type)
+        file, to_remove = None, False
         try:
-            if encrypt is True and self.rsa_key is None:
-                raise ClientError("Please supply private key to encrypt the data")
-
+            file, file_content_type, to_remove = self.__process_data(data, file_content_type, compression=compression)
             callback_url = callback_url if callback_url is not None else self.callback_url
             params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
-                          callback_url=callback_url, callback_param=json_dump(callback_param))
+                          callback_url=callback_url, callback_param=json_dump(callback_param),
+                          compression=compression)
             if encrypt:
                 self.RSA_encrypt(file)
             files = {"features": ('features.json', file, file_content_type)}
