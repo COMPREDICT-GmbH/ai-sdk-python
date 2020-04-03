@@ -3,7 +3,7 @@ from Crypto.Cipher import PKCS1_OAEP
 from compredict.resources import resources
 from json import dumps as json_dump, dump
 from pandas import DataFrame
-from pandas.io.common import _get_handle
+from pandas.io.common import get_handle
 import base64
 from tempfile import NamedTemporaryFile
 from os import remove
@@ -172,7 +172,7 @@ class api:
         :type compression: string.
         :return: saved file.
         """
-        file, _ = _get_handle(t_file.name, "w", compression=compression)
+        file, _ = get_handle(t_file.name, "w", compression=compression)
         with file as f:
             dump(data, f)
         t_file.seek(0)
