@@ -1,7 +1,8 @@
 import requests
-from compredict.exceptions import *
+from compredict.exceptions import ClientError, ServerError
 from tempfile import NamedTemporaryFile
-from .exceptions import Error
+
+from compredict.exceptions import Error
 
 
 class Connection:
@@ -69,27 +70,28 @@ class Connection:
         :param request: the request made to the URL.
         :return: JSON if request is correct otherwise false.
         """
-        if '/template' in request.url or '/graph' in request.url:
-            ext = '.png' if request.headers['Content-Type'] == 'image/png' else '.csv'
-            response = NamedTemporaryFile(suffix=ext)
-            response.write(request.content)
-            response.seek(0)
-        else:
-            response = request.json()
         if 400 <= request.status_code <= 499:
             if self.fail_on_error:
-                raise ClientError(response)
+                raise ClientError(request.json())
             else:
-                error = Error(response, request.status_code)
+                error = Error(request.json(), request.status_code)
                 self.last_error = error
                 return False
 
         elif 500 <= request.status_code <= 599:
             if self.fail_on_error:
-                raise ServerError(response)
+                raise ServerError(request.json())
             else:
-                error = Error(response, request.status_code)
+                error = Error(request.json(), request.status_code)
                 self.last_error = error
                 return False
+
+        if '/template' in request.url or '/graph' in request.url:
+            ext = '.png' if request.headers['Content-Type'] == 'image/png' else '.json'
+            response = NamedTemporaryFile(suffix=ext)
+            response.write(request.content)
+            response.seek(0)
+        else:
+            response = request.json()
 
         return response

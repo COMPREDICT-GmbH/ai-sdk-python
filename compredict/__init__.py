@@ -1,5 +1,5 @@
-import compredict.client
-import compredict.connection
-import compredict.resources
+from compredict.client import api
 
-__version__ = "0.3.0"
+__all__ = ['api']
+
+__version__ = "1.0.0"

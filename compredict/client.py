@@ -8,10 +8,11 @@ import base64
 from tempfile import NamedTemporaryFile
 from os import remove
 from os.path import exists
+from typing import Optional, Union, IO, List, Type
 
-from .exceptions import ClientError
-from .singleton import Singleton
-from .connection import Connection
+from compredict.exceptions import ClientError, Error
+from compredict.singleton import Singleton
+from compredict.connection import Connection
 
 CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
@@ -19,7 +20,12 @@ CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 @Singleton
 class api:
 
-    def __init__(self, token=None, callback_url=None, ppk=None, passphrase=None, url=None):
+    def __init__(self,
+                 token: Optional[str] = None,
+                 callback_url: Optional[str] = None,
+                 ppk: Optional[str] = None,
+                 passphrase: Optional[str] = None,
+                 url: Optional[str] = None):
         """
         COMPREDICT's AI Core Client that will provide an interface for communication. This class is singleton.
 
@@ -39,7 +45,7 @@ class api:
         if ppk is not None:
             self.set_ppk(ppk, passphrase)
 
-    def fail_on_error(self, option=True):
+    def fail_on_error(self, option: bool = True):
         """
         Ability to choose whether to raise exception on receiving error or return false.
 
@@ -48,7 +54,7 @@ class api:
         """
         self.connection.fail_on_error = option
 
-    def set_ppk(self, ppk, passphrase=''):
+    def set_ppk(self, ppk: str, passphrase: str = ''):
         """
         Load the private key from the path and set the correct padding scheme.
 
@@ -61,7 +67,7 @@ class api:
             self.rsa_key = PKCS1_OAEP.new(self.rsa_key)
         pass
 
-    def verify_peer(self, option):
+    def verify_peer(self, option: str):
         """
         Prompt SSL connection
 
@@ -71,10 +77,11 @@ class api:
         self.connection.ssl = option
 
     @property
-    def last_error(self):
+    def last_error(self) -> Error:
         return self.connection.last_error
 
-    def __map_resource(self, resource, a_object):
+    @staticmethod
+    def __map_resource(resource: str, a_object: Union[dict, bool]) -> Union[Type[resources.BaseResource], bool]:
         """
         Map the result to the correct resource
 
@@ -91,7 +98,8 @@ class api:
             raise ImportError("Resource {} was not found".format(resource))
         return instance
 
-    def __map_collection(self, resource, objects):
+    @staticmethod
+    def __map_collection(resource: str, objects: Union[dict, bool]) -> Union[List[Type[resources.BaseResource]], bool]:
         """
         Create a list of resources if the results returns a list
 
@@ -111,7 +119,7 @@ class api:
             raise ImportError("Resource {} was not found".format(resource))
         return instances
 
-    def get_algorithms(self):
+    def get_algorithms(self) -> Union[List[resources.Algorithm], bool]:
         """
         Returns the collection of algorithms
 
@@ -120,7 +128,7 @@ class api:
         response = self.connection.GET('/algorithms')
         return self.__map_collection('Algorithm', response)
 
-    def get_algorithm(self, algorithm_id):
+    def get_algorithm(self, algorithm_id: str) -> Union[resources.Algorithm, bool]:
         """
         Get the information of the given algorithm id
 
@@ -160,7 +168,8 @@ class api:
                 data.to_csv(file.name, sep=',', compression=compression)
         return file, content_type, True
 
-    def __write_json_file(self, t_file, data, compression=None):
+    @staticmethod
+    def __write_json_file(t_file, data, compression=None):
         """
         function to write JSON into a file and point again to the top of the file for reading.
 
@@ -177,13 +186,22 @@ class api:
             dump(data, f)
         t_file.seek(0)
 
-    def run_algorithm(self, algorithm_id, data, evaluate=True, encrypt=False, callback_url=None,
-                      callback_param=None, file_content_type=None, compression=None):
+    def run_algorithm(self,
+                      algorithm_id: str,
+                      data: Union[str, DataFrame, dict],
+                      version: Optional[str] = None,
+                      evaluate: bool = True,
+                      encrypt: bool = False,
+                      callback_url: Optional[str] = None,
+                      callback_param: Optional[dict] = None,
+                      file_content_type: Optional[str] = None,
+                      compression: Optional[str] = None) -> Union[resources.Task, resources.Result, bool]:
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
         :param algorithm_id: String identifier of the algorithm
         :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
+        :param version: Choose the version of the algorithm you would like to call. Default is latest version.
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
         :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
         :param callback_url: The callback url that will override the callback url in the class.
@@ -205,7 +223,7 @@ class api:
             callback_url = callback_url if callback_url is not None else self.callback_url
             params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
-                          compression=compression)
+                          compression=compression, version=version)
             if encrypt:
                 self.RSA_encrypt(file)
             files = {"features": ('features.json', file, file_content_type)}
@@ -220,7 +238,8 @@ class api:
                     remove(file.name)
         return self.__map_resource(resource, response)
 
-    def __process_evaluate(self, evaluate):
+    @staticmethod
+    def __process_evaluate(evaluate):
         """
         Check the type of evaluate parameter and parse it accordingly.
 
@@ -232,7 +251,7 @@ class api:
             return json_dump(evaluate)
         return evaluate
 
-    def get_task_results(self, task_id):
+    def get_task_results(self, task_id: str) -> Union[resources.Task, bool]:
         """
         Check COMPREDICT'S AI Core for the results of the computation.
 
@@ -242,34 +261,71 @@ class api:
         response = self.connection.GET('/algorithms/tasks/{}'.format(task_id))
         return self.__map_resource('Task', response)
 
-    def get_template(self, algorithm_id, file_type='input'):
+    def get_algorithm_versions(self, algorithm_id: str) -> Union[List[resources.Version], bool]:
+        """
+        Get all versions of an algorithm.
+
+        :param algorithm_id: The id of the main algorithm
+        :return: List of versions
+        """
+        response = self.connection.GET('/algorithms/{}/versions'.format(algorithm_id))
+        if isinstance(response, list):
+            [response[i].update(dict(algorithm_id=algorithm_id)) for i in range(len(response))]
+        return self.__map_collection('Version', response)
+
+    def get_algorithm_version(self, algorithm_id: str, version: str) -> Union[resources.Version, bool]:
+        """
+        Get a specific version of an algorithm.
+
+        :param algorithm_id: The id of the main algorithm
+        :param version: Specify the version of the algorithm
+        :return: Version
+        """
+        response = self.connection.GET('/algorithms/{}/versions/{}'.format(algorithm_id, version))
+        if isinstance(response, dict):
+            response.update(dict(algorithm_id=algorithm_id))
+        return self.__map_resource('Version', response)
+
+    def get_template(self, algorithm_id: str,
+                     file_type: str = 'input',
+                     version: Optional[str] = None) -> NamedTemporaryFile:
         """
         Return the template that explains the data to be sent for the algorithms. Bear in mind, to close the file once
         done to delete it.
 
         :param algorithm_id: String identifier of the Algorithm.
         :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
+        :param version: (default None) ability to specify the version of the template to retrieve. Default will get
+        the latest version.
         :return: NamedTemporaryFile of the results.
         """
-        response = self.connection.GET('/algorithms/{}/template?type={}'.format(algorithm_id, file_type))
+        get_args = self.__build_get_args(type=file_type, version=version)
+        response = self.connection.GET('/algorithms/{}/template{}'.format(algorithm_id, get_args))
         return response
 
-    def get_graph(self, algorithm_id, file_type):
+    def get_graph(self, algorithm_id: str, file_type: str, version: Optional[str] = None) -> NamedTemporaryFile:
         """
         Return the graph that explains the input data to be sent for the algorithms.
 
         :param algorithm_id: String identifier of the Algorithm.
         :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
+        :param version: (default None) ability to specify the version of the graph to retrieve. Default will get
+        the latest version.
         :return: NamedTemporaryFile of the results.
         """
-        response = self.connection.GET('/algorithms/{}/graph?type={}'.format(algorithm_id, file_type))
+        get_args = self.__build_get_args(type=file_type, version=version)
+        response = self.connection.GET('/algorithms/{}/graph{}'.format(algorithm_id, get_args))
         return response
 
-    def RSA_encrypt(self, data, chunk_size=214):
+    @staticmethod
+    def __build_get_args(**kwargs):
+        return "?" + "&".join(["{}={}".format(key, value) for key, value in kwargs.items() if value is not None])
+
+    def RSA_encrypt(self, data: Union[str, IO], chunk_size: int = 214):
         """
         Encrypt the message by the provided RSA public key.
 
-        :param data: message of file containt the data to be encrypted
+        :param data: message of file contains the data to be encrypted
         :type data: string | file
         :param chunk_size: the chunk size used for PKCS1_OAEP decryption, it is determined by \
         the private key length used in bytes - 42 bytes.

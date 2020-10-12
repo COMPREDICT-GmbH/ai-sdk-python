@@ -17,4 +17,3 @@ class BaseResource(object):
 
     def __getattr__(self, item):
         return self.item if item in self.__dict__ else None
-
