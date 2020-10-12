@@ -10,12 +10,17 @@ with open(os.path.join(this_dir, "README.md"), "rb") as fo:
 with open(os.path.join(this_dir, 'requirements.txt')) as fo:
     requirements = fo.read().splitlines()
 
+dev_requirements = [
+    "flake8==3.8.3",
+    'coverage==4.5.1'
+]
+
 setup(
     # Application name:
     name="COMPREDICT-AI-SDK",
 
     # Version number (initial):
-    version="0.3.1",
+    version="1.0.0",
 
     # Application author details:
     author="Ousama Esbel",
@@ -38,4 +43,7 @@ setup(
 
     # Dependent packages (distributions)
     install_requires=requirements,
+    extras_require={
+            'dev': dev_requirements
+        }
 )

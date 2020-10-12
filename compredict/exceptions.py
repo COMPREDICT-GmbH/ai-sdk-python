@@ -14,9 +14,13 @@ class Error(object):
     """Error class that stores the last error of the client given that `fail_on_error` is sat to False."""
 
     def __init__(self, response, status_code):
+        print(response)
         messages = response['error'] if 'error' in response else response['errors']
         self.messages = [messages] if isinstance(messages, str) else messages
         self.status_code = status_code
 
     def __str__(self):
+        return " ".join(self.messages)
+
+    def __repr__(self):
         return " ".join(self.messages)
