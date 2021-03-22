@@ -14,7 +14,7 @@ class Singleton:
 
     """
 
-    BASE_URL = "https://aic.compredict.de/api/v{}"
+    BASE_URL = "https://core.compredict.ai/api/v{}"
     API_VERSION = '1'
 
     def __init__(self, decorated):
