@@ -22,7 +22,7 @@ class api:
 
     def __init__(self,
                  token: Optional[str] = None,
-                 callback_url: Optional[str] = None,
+                 callback_url: Optional[Union[str, list]] = None,
                  ppk: Optional[str] = None,
                  passphrase: Optional[str] = None,
                  url: Optional[str] = None):
@@ -38,7 +38,7 @@ class api:
         if token is not None and len(token) != 40:
             raise Exception("API Key is not in valid format!")
 
-        self.callback_url = callback_url
+        self.callback_url = self.set_callback_urls(callback_url) if not None else callback_url
         url = api.BASE_URL.format(api.API_VERSION) if url is None else url
         self.connection = Connection(url, token=token)
         self.rsa_key = None
@@ -53,6 +53,24 @@ class api:
         :return: None
         """
         self.connection.fail_on_error = option
+
+    def set_callback_urls(self, callback_url:Union[list, str]) -> str:
+        """
+        Accept list of urls and format them into one string with dividing '|' in between
+
+        :param callback_url: list of callback urls
+        :return: one callback_url string
+        """
+
+        multiple_callback = ""
+
+        if type(callback_url) == list:
+            for url in callback_url:
+                multiple_callback = multiple_callback + url + "|"
+        else:
+            multiple_callback = callback_url
+
+        return multiple_callback
 
     def set_ppk(self, ppk: str, passphrase: str = ''):
         """
@@ -192,7 +210,7 @@ class api:
                       version: Optional[str] = None,
                       evaluate: bool = True,
                       encrypt: bool = False,
-                      callback_url: Optional[str] = None,
+                      callback_url: Optional[Union[str, list]] = None,
                       callback_param: Optional[dict] = None,
                       file_content_type: Optional[str] = None,
                       compression: Optional[str] = None) -> Union[resources.Task, resources.Result, bool]:
@@ -220,7 +238,7 @@ class api:
         file, to_remove = None, False
         try:
             file, file_content_type, to_remove = self.__process_data(data, file_content_type, compression=compression)
-            callback_url = callback_url if callback_url is not None else self.callback_url
+            callback_url = self.set_callback_urls(callback_url) if callback_url is not None else self.callback_url
             params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
