@@ -106,7 +106,16 @@ Depending on the algorithm's computation requirement `algorithm.result`, the res
 - **compredict.resources.Task**: holds a job id of the task that the user can query later to get the results.
 - **compredict.resources.Result**: contains the result of the algorithm + evaluation
 
-Example of sending data as `application/json`:
+**Example of specifying multiple callbacks** 
+
+In case of heavy tasks, user instead of immediate response, receives Task Id. If user would like for results to be send to multiple urls, this is the example of how the callback string needs to look like:
+
+~~~python
+callback_url = 'one_url_for_callback|second_url_for_callback|third_url_for_calllback'}
+~~~
+As you can notice, urls for multiple callback are of a string type with deviding them "|" symbols. 
+
+**Example of sending data as** `application/json`:
 
 ~~~python
 X_test = dict(
@@ -148,7 +157,7 @@ else:  # not a Task, it is a Result Instance
     print(results.predictions)
 ~~~
 
-Example of sending data as `application/parquet`:
+**Example of sending data as** `application/parquet`:
 
 ~~~python
 import pandas as pd
@@ -162,7 +171,7 @@ algorithm = compredict_client.getAlgorithm('algorithm_id')
 result = algorithm.run(X_test, file_content_type="application/parquet")
 ~~~
 
-Example of sending data from parquet file:
+**Example of sending data from parquet file:**
 
 ~~~python
 algorithm = compredict_client.getAlgorithm('algorithm_id')
