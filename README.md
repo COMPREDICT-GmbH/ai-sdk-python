@@ -108,10 +108,10 @@ Depending on the algorithm's computation requirement `algorithm.result`, the res
 
 **Example of specifying multiple callbacks** 
 
-In case of heavy tasks, user instead of immediate response, receives Task Id. If user would like for results to be send to multiple urls, this is the example of how the callback string needs to look like:
+In case of heavy tasks, user instead of immediate response, receives Task Id. If user would like for results to be send to multiple urls, then the list of urls needs to be provided:
 
 ~~~python
-callback_url = 'one_url_for_callback|second_url_for_callback|third_url_for_calllback'}
+callback_url = ["first_url_for_callback", "second_url_for_callback", "third_url_for_calllback"]
 ~~~
 As you can notice, urls for multiple callback are of a string type with deviding them "|" symbols. 
 
