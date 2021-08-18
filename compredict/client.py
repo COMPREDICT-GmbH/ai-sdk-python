@@ -22,7 +22,7 @@ class api:
 
     def __init__(self,
                  token: Optional[str] = None,
-                 callback_url: Optional[Union[str, list]] = None,
+                 callback_url: Optional[str] = None,
                  ppk: Optional[str] = None,
                  passphrase: Optional[str] = None,
                  url: Optional[str] = None):
@@ -38,7 +38,7 @@ class api:
         if token is not None and len(token) != 40:
             raise Exception("API Key is not in valid format!")
 
-        self.callback_url = self.set_callback_urls(callback_url) if not None else callback_url
+        self.callback_url = callback_url
         url = api.BASE_URL.format(api.API_VERSION) if url is None else url
         self.connection = Connection(url, token=token)
         self.rsa_key = None
@@ -56,7 +56,8 @@ class api:
 
     def set_callback_urls(self, callback_url:Union[list, str]) -> str:
         """
-        Accept list of urls and format them into one string with dividing '|' in between
+        Accept list of urls and format them into one string with dividing '|' in between.
+        This is the format accepted by ai core.
 
         :param callback_url: list of callback urls
         :return: one callback_url string
@@ -65,8 +66,7 @@ class api:
         multiple_callback = ""
 
         if type(callback_url) == list:
-            for url in callback_url:
-                multiple_callback = multiple_callback + url + "|"
+           multiple_callback = "|".join(callback_url)
         else:
             multiple_callback = callback_url
 
@@ -211,7 +211,7 @@ class api:
                       evaluate: bool = True,
                       encrypt: bool = False,
                       callback_url: Optional[Union[str, list]] = None,
-                      callback_param: Optional[dict] = None,
+                      callback_param: Optional[Union[dict, list]] = None,
                       file_content_type: Optional[str] = None,
                       compression: Optional[str] = None) -> Union[resources.Task, resources.Result, bool]:
         """
@@ -224,6 +224,10 @@ class api:
         :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
         :param callback_url: The callback url that will override the callback url in the class.
         :param callback_param: The callback additional parameter to be sent back when requesting the results.
+                               If multiple callback_urls are specified, different parameters can be defined for each
+                               url. In this case list of dictionaries is required. If single callback dictionary is
+                               passed with list of callback urls - then the same parameters will be used with all
+                               callback urls.
         :param file_content_type: type of data to be sent to AI Core.
         :param compression: The compressed type of the data, the compression supported is what pandas supports \
         for the file content type you will send. Compression is only supported if encrypt is false. Based on data type:
