@@ -1,4 +1,8 @@
+from typing import Union
+
 import requests
+from requests import Response
+
 from compredict.exceptions import ClientError, ServerError
 from tempfile import NamedTemporaryFile
 
@@ -24,7 +28,7 @@ class Connection:
         if token is not None:
             self.headers['Authorization'] = 'Token ' + token
 
-    def set_token(self, token):
+    def set_token(self, token:str):
         """
         Set the token for authorization.
 
@@ -33,7 +37,7 @@ class Connection:
         """
         self.headers['Authorization'] = 'Token ' + token
 
-    def POST(self, endpoint, data, files=None):
+    def POST(self, endpoint:str, data:dict, files=None) -> Union[bool, NamedTemporaryFile, dict]:
         """
         Responsible for sending POST request and uploading files if specified.
 
@@ -51,7 +55,7 @@ class Connection:
         self.last_request = requests.post(address, files=files, data=data, headers=self.headers)
         return self.__handle_response(self.last_request)
 
-    def GET(self, endpoint):
+    def GET(self, endpoint:str) -> Union[bool, NamedTemporaryFile, dict]:
         """
         Responsible for sending GET requests.
 
@@ -63,7 +67,7 @@ class Connection:
         self.last_request = requests.get(address, None, headers=self.headers)
         return self.__handle_response(self.last_request)
 
-    def __handle_response(self, request):
+    def __handle_response(self, request:Response) -> Union[bool, NamedTemporaryFile, dict]:
         """
         Handles the requests based on the status code. In addition it raises exception if fail_on_error is True.
 
