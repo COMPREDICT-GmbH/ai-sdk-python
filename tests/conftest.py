@@ -5,6 +5,7 @@ from requests import Response
 
 from compredict.client import api
 from compredict.connection import Connection
+from compredict.resources import Task
 
 
 @pytest.fixture(scope='session')
@@ -79,3 +80,23 @@ def connection_with_fail_on_true():
 def connection():
     connection = Connection(url="https://core.compredict.ai/api/")
     return connection
+
+
+@pytest.fixture(scope='module')
+def task():
+    task = Task()
+    return task
+
+
+@pytest.fixture(scope='module')
+def object():
+    object = {
+        "status": "In Progress"
+    }
+    return object
+
+
+@pytest.fixture(scope='module')
+def data():
+    data = {"1": [346.5, 6456.6, 56.7], "2": [343.4, 34.6, 45.7]}
+    return data
