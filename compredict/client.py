@@ -1,18 +1,19 @@
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-from compredict.resources import resources
-from json import dumps as json_dump, dump
-from pandas import DataFrame
-from pandas.io.common import get_handle
 import base64
-from tempfile import NamedTemporaryFile
+from json import dumps as json_dump, dump
 from os import remove
 from os.path import exists
+from tempfile import NamedTemporaryFile
 from typing import Optional, Union, IO, List, Type
 
-from compredict.exceptions import ClientError, Error
-from compredict.singleton import Singleton
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+from pandas import DataFrame
+from pandas.io.common import get_handle
+
 from compredict.connection import Connection
+from compredict.exceptions import ClientError, Error
+from compredict.resources import resources
+from compredict.singleton import Singleton
 
 CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
@@ -54,7 +55,7 @@ class api:
         """
         self.connection.fail_on_error = option
 
-    def set_callback_urls(self, callback_url:Union[list, str]) -> str:
+    def set_callback_urls(self, callback_url: Union[list, str]) -> str:
         """
         Accept list of urls and format them into one string with dividing '|' in between.
         This is the format accepted by ai core.
@@ -66,7 +67,7 @@ class api:
         multiple_callback = ""
 
         if type(callback_url) == list:
-           multiple_callback = "|".join(callback_url)
+            multiple_callback = "|".join(callback_url)
         else:
             multiple_callback = callback_url
 
@@ -156,7 +157,7 @@ class api:
         response = self.connection.GET('/algorithms/{}'.format(algorithm_id))
         return self.__map_resource('Algorithm', response)
 
-    def __process_data(self, data, content_type=None, compression=None):
+    def __process_data(self, data: Union[dict, str, DataFrame], content_type=None, compression=None):
         """
         Process the given data and convert it to file.
 
@@ -187,7 +188,7 @@ class api:
         return file, content_type, True
 
     @staticmethod
-    def __write_json_file(t_file, data, compression=None):
+    def __write_json_file(t_file: NamedTemporaryFile, data: dict, compression=None):
         """
         function to write JSON into a file and point again to the top of the file for reading.
 
@@ -261,7 +262,7 @@ class api:
         return self.__map_resource(resource, response)
 
     @staticmethod
-    def __process_evaluate(evaluate):
+    def __process_evaluate(evaluate: Union[bool, dict, str]) -> Union[bool, str]:
         """
         Check the type of evaluate parameter and parse it accordingly.
 
@@ -387,7 +388,7 @@ class api:
 
         return encrypted
 
-    def RSA_decrypt(self, encrypted_msg, chunk_size=256, to_bytes=False):
+    def RSA_decrypt(self, encrypted_msg: bytes, chunk_size=256, to_bytes=False):
         """
         Decrypt the encrypted message by the provided RSA private key.
 
@@ -418,7 +419,7 @@ class api:
         return decrypted.decode() if not to_bytes else decrypted
 
     @staticmethod
-    def __is_binary(filepath):
+    def __is_binary(filepath: str):
         """
         Return true if the given filename appears to be binary.
         File is considered to be binary if it contains a NULL byte.
