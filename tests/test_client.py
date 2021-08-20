@@ -32,24 +32,30 @@ def test_fail_on_error_and_verify_peer(api_client, option, expected):
     assert api_client.connection.ssl == expected
 
 
-def test_last_error(api_client, response, mocker, connection, content):
-    mocker.patch('requests.get', return_value=response)
-    response = connection.GET(endpoint="some/endpoint")
-    actual_last_error = api_client.last_error
-    # error = Error(response=content, status_code=400)
+# def test_last_error(api_client, response, mocker, connection, content):
+#     mocker.patch('requests.get', return_value=response)
+#     response = connection.GET(endpoint="some/endpoint")
+#     actual_last_error = api_client.last_error
+#     # error = Error(response=content, status_code=400)
+#
+#     assert actual_last_error == True
+#     assert response == False
 
-    assert actual_last_error == True
-    assert response == False
 
-
-def test_run_algorithm(api_client):
+def test_run_algorithm(api_client, mocker, response_200):
     algorithm_id = "id"
     data = {"data": "some_data"}
     callback_url = ["1callback", "2callback"]
     callback_param = [{1: "first"}, {2: "second"}]
 
-    api_client.run_algorithm(algorithm_id=algorithm_id, data=data, callback_url=callback_url,
-                             callback_param=callback_param)
+    mocker.patch('requests.post', return_value=response_200)
+
+    response = api_client.run_algorithm(algorithm_id=algorithm_id, data=data,
+                                        callback_url=callback_url,
+                                        callback_param=callback_param)
+
+    assert response.error == 'False'
+    assert response.result == "some result"
 
 
 def test_run_algorithm_with_client_error(mocker, api_client, response_400):
@@ -117,20 +123,6 @@ def test_process_data_with_value_error(api_client, data):
         api_client._api__process_data(content_type, data)
 
 
-def test_write_json_file(api_client, data, mocker):
-    content_type = "application/json"
-
-    temp_file = mocker.patch('tempfile.NamedTemporaryFile')
-    mocked = mocker.patch('compredict.client.api.__write_json_file')
-
-    file, actual_content_type, bool = api_client._api__process_data(content_type, data)
-
-    assert file == temp_file
-    assert mocked.called == True
-    assert actual_content_type == content_type
-    assert bool == True
-
-
 def test_RSA_decrypt_and_encrypt_with_error_raised(api_client):
     encrypted_key = json.dumps("dsfsdgryertn6435fsdf").encode('utf-8')
     data = "Some data to be encrypted"
@@ -141,9 +133,10 @@ def test_RSA_decrypt_and_encrypt_with_error_raised(api_client):
         api_client.RSA_encrypt(data)
 
 
-def test_RSA_encrypt_and_decrypt(api_client):
+def test_RSA_encrypt_and_decrypt(api_client, rsa_key):
     data = "here there is some data to be encrypted"
 
+    api_client.rsa_key = rsa_key
     result = api_client.RSA_encrypt(data)
     decrypted_msg = api_client.RSA_decrypt(result)
 
