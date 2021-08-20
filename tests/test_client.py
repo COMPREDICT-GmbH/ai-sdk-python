@@ -1,8 +1,6 @@
 import json
 
 import pytest
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.PublicKey import RSA
 
 from compredict.exceptions import ClientError
 from compredict.resources import Task, Algorithm
@@ -152,3 +150,14 @@ def test_RSA_encrypt_and_decrypt(api_client):
     assert data != result
     assert len(result) > len(data)
     assert data == decrypted_msg
+
+
+def test_build_get_arguments(api_client):
+    type = "input"
+    version = "1.2.2"
+
+    actual = api_client._api__build_get_args(type=type, version=version)
+
+    expected = "?type=input&version=1.2.2"
+
+    assert actual == expected
