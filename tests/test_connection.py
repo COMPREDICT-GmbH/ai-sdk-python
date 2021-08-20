@@ -1,5 +1,8 @@
+import pathlib
+
 import pytest
 
+from compredict.connection import Connection
 from compredict.exceptions import ClientError, ServerError
 
 
@@ -31,7 +34,6 @@ def test_handle_response_with_last_error(connection, response_400, response_500)
 
 
 def test_handle_response_with_graph(connection, response_200_with_url, mocker):
-
     mocked_wrapper = mocker.patch('tempfile._TemporaryFileWrapper')
 
     connection._Connection__handle_response(response_200_with_url)
@@ -59,6 +61,19 @@ def test_successful_POST(connection, response_200, mocker):
         "result": "some result"
     }
     assert actual_response == expected_response
+
+
+def test_successful_POST_with_file(connection, response_200, mocker, data):
+    file = pathlib.Path(__file__).parent.resolve().joinpath('example.json')
+    mocker.patch('requests.post', return_value=response_200)
+    content_type = "json/apllication"
+    connection.headers["Content-Type"] = content_type
+    actual_result = connection.POST(endpoint="not/as/important/endpoint/here", data=data,
+                                    files=file)
+    expected = {'error': 'False', 'result': 'some result'}
+    assert actual_result == expected
+    with pytest.raises(KeyError):
+        type = connection.headers['Content-Type']
 
 
 def test_unsuccessful_POST(connection, response_400, mocker):
@@ -92,3 +107,11 @@ def test_unsuccessful_GET(connection, response_500, mocker):
     actual_response = connection.GET(endpoint=endpoint)
 
     assert actual_response == False
+
+
+def test_create_headers_with_auth():
+    connection = Connection(url="not/of/much/importance/here",
+                            token="1234token1234")
+    actual = connection.headers['Authorization']
+    expected = 'Token 1234token1234'
+    assert actual == expected
