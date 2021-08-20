@@ -143,13 +143,12 @@ def test_RSA_decrypt_and_encrypt_with_error_raised(api_client):
         api_client.RSA_encrypt(data)
 
 
-def test_RSA_encrypt(api_client):
+def test_RSA_encrypt_and_decrypt(api_client):
     data = "here there is some data to be encrypted"
-    rsa = RSA.generate(1024)
-    rsa_key = PKCS1_OAEP.new(rsa)
-    api_client.rsa_key = rsa_key
 
     result = api_client.RSA_encrypt(data)
+    decrypted_msg = api_client.RSA_decrypt(result)
 
     assert data != result
     assert len(result) > len(data)
+    assert data == decrypted_msg
