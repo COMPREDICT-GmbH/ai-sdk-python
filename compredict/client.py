@@ -354,7 +354,7 @@ class api:
         the private key length used in bytes - 42 bytes.
         :type chunk_size: int
         :return: Base 64 encryption of the encrypted message
-        :rtype: binray
+        :rtype: binary
         """
         if self.rsa_key is None:
             raise Exception("Path to private key should be provided to decrypt the response.")
