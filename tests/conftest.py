@@ -60,7 +60,7 @@ def response_200(successful_content):
 
 
 @pytest.fixture(scope="module")
-def response_200_with_url(successful_content, unsucessful_content):
+def response_200_with_url(successful_content):
     response_200_with_url = Response()
     response_200_with_url.status_code = 200
     response_200_with_url._content = json.dumps(successful_content).encode('utf-8')
