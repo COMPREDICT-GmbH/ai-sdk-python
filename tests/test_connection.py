@@ -30,13 +30,13 @@ def test_handle_response_with_last_error(connection, response_400, response_500)
     assert response_500 == False
 
 
-# def test_handle_response_with_graph(connection, response_200_with_url, mocker):
-#
-#     tmp_file = mocker.patch('tempfile._TemporaryFileWrapper.write')
-#
-#     temp_file = connection._Connection__handle_response(response_200_with_url)
-#
-#     assert tmp_file
+def test_handle_response_with_graph(connection, response_200_with_url, mocker):
+
+    mocked_wrapper = mocker.patch('tempfile._TemporaryFileWrapper')
+
+    connection._Connection__handle_response(response_200_with_url)
+
+    assert mocked_wrapper.called == True
 
 
 def test_handle_successful_response(connection, response_200):
