@@ -32,14 +32,13 @@ def test_fail_on_error_and_verify_peer(api_client, option, expected):
     assert api_client.connection.ssl == expected
 
 
-# def test_last_error(api_client, response, mocker, connection, content):
-#     mocker.patch('requests.get', return_value=response)
-#     response = connection.GET(endpoint="some/endpoint")
-#     actual_last_error = api_client.last_error
-#     # error = Error(response=content, status_code=400)
-#
-#     assert actual_last_error == True
-#     assert response == False
+def test_last_error(response_400, mocker, connection):
+
+    mocker.patch('requests.get', return_value=response_400)
+    connection.GET(endpoint="some/endpoint")
+    actual_last_error = connection.last_error
+
+    assert actual_last_error
 
 
 def test_run_algorithm(api_client, mocker, response_200):
