@@ -1,8 +1,8 @@
 import json
-import tempfile
-from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
 
 import pytest
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
 
 from compredict.exceptions import ClientError
 from compredict.resources import Task, Algorithm
@@ -112,17 +112,14 @@ def test_map_collection(api_client, object):
         assert isinstance(result, Task)
 
 
-def test_process_data_with_value_error(api_client):
-
+def test_process_data_with_value_error(api_client, data):
     content_type = "text/html"
-    data = {"1": [346.5, 6456.6, 56.7], "2": [343.4, 34.6, 45.7]}
 
     with pytest.raises(ValueError):
         api_client._api__process_data(content_type, data)
 
 
 def test_write_json_file(api_client, data, mocker):
-
     content_type = "application/json"
 
     temp_file = mocker.patch('tempfile.NamedTemporaryFile')
@@ -136,3 +133,23 @@ def test_write_json_file(api_client, data, mocker):
     assert bool == True
 
 
+def test_RSA_decrypt_and_encrypt_with_error_raised(api_client):
+    encrypted_key = json.dumps("dsfsdgryertn6435fsdf").encode('utf-8')
+    data = "Some data to be encrypted"
+    api_client.rsa_key = None
+
+    with pytest.raises(Exception):
+        api_client.RSA_decrypt(encrypted_key)
+        api_client.RSA_encrypt(data)
+
+
+def test_RSA_encrypt(api_client):
+    data = "here there is some data to be encrypted"
+    rsa = RSA.generate(1024)
+    rsa_key = PKCS1_OAEP.new(rsa)
+    api_client.rsa_key = rsa_key
+
+    result = api_client.RSA_encrypt(data)
+
+    assert data != result
+    assert len(result) > len(data)
