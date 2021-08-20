@@ -1,6 +1,8 @@
 import json
 
 import pytest
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
 from requests import Response
 
 from compredict.client import api
@@ -9,8 +11,16 @@ from compredict.resources import Task
 
 
 @pytest.fixture(scope='session')
-def api_client():
+def rsa_key():
+    generated_key = RSA.generate(1024)
+    rsa_key = PKCS1_OAEP.new(generated_key)
+    return rsa_key
+
+
+@pytest.fixture(scope='session')
+def api_client(rsa_key):
     api_client = api.get_instance()
+    api_client.rsa_key = rsa_key
     return api_client
 
 
