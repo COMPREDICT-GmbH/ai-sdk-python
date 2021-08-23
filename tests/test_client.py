@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from compredict import api
 from compredict.exceptions import ClientError
 from compredict.resources import Task, Algorithm, Version, Result
 
@@ -16,6 +17,7 @@ from compredict.resources import Task, Algorithm, Version, Result
                          ])
 def test_set_callback_urls(api_client, callback, expected):
     actual = api_client.set_callback_urls(callback)
+
     assert actual == expected
 
 
@@ -35,6 +37,7 @@ def test_fail_on_error_and_verify_peer(api_client, option, expected):
 def test_last_error(response_400, mocker, connection):
     mocker.patch('requests.get', return_value=response_400)
     connection.GET(endpoint="some/endpoint")
+
     actual_last_error = connection.last_error
 
     assert actual_last_error
@@ -61,7 +64,6 @@ def test_run_algorithm_with_client_error(mocker, api_client, response_400):
     data = {"data": "some_data"}
     callback_url = ["1callback", "2callback", "3callback"]
     callback_param = [{1: "first"}, {2: "second"}]
-
     mocker.patch('builtins.dict', side_effect=AttributeError)
 
     with pytest.raises(ClientError):
@@ -124,6 +126,7 @@ def test_process_data_with_value_error(api_client, data):
 def test_RSA_decrypt_and_encrypt_with_error_raised(api_client):
     encrypted_key = json.dumps("dsfsdgryertn6435fsdf").encode('utf-8')
     data = "Some data to be encrypted"
+
     api_client.rsa_key = None
 
     with pytest.raises(Exception):
@@ -146,19 +149,19 @@ def test_RSA_encrypt_and_decrypt(api_client, rsa_key):
 def test_build_get_arguments(api_client):
     type = "input"
     version = "1.2.2"
+    expected = "?type=input&version=1.2.2"
 
     actual = api_client._api__build_get_args(type=type, version=version)
-
-    expected = "?type=input&version=1.2.2"
 
     assert actual == expected
 
 
 def test_get_task_results(api_client, mocker, response_200_with_result):
-
     task_id = '12jffd'
     mocker.patch('requests.get', return_value=response_200_with_result)
+
     response = api_client.get_task_results(task_id)
+
     assert isinstance(response, Task)
     assert response.reference == task_id
 
@@ -166,7 +169,9 @@ def test_get_task_results(api_client, mocker, response_200_with_result):
 def test_get_algorithm_versions(api_client, mocker, response_200_with_versions):
     algorithm_id = 'mass_estimation'
     mocker.patch('requests.get', return_value=response_200_with_versions)
+
     response = api_client.get_algorithm_versions(algorithm_id)
+
     assert isinstance(response[0], Version)
     assert isinstance(response[1], Version)
 
@@ -175,15 +180,16 @@ def test_get_algorithm_version(api_client, mocker, response_200_with_version):
     algorithm_id = 'co2_emission'
     version = '1.3.0'
     mocker.patch('requests.get', return_value=response_200_with_version)
+
     response = api_client.get_algorithm_version(algorithm_id, version)
+
     assert isinstance(response, Version)
     assert response.version == version
 
 
 def test_get_template(api_client, mocker, response_200_with_url):
-
     algorithm_id = 'algorithm'
-    mocker.patch('requests.get', return_value = response_200_with_url)
+    mocker.patch('requests.get', return_value=response_200_with_url)
     mocker.patch('tempfile._TemporaryFileWrapper')
 
     file = api_client.get_template(algorithm_id)
@@ -193,7 +199,6 @@ def test_get_template(api_client, mocker, response_200_with_url):
 
 
 def test_get_graph(api_client, mocker, response_200_with_url):
-
     algorithm_id = 'another_algorithm'
     mocker.patch('requests.get', return_value=response_200_with_url)
     mocker.patch('tempfile._TemporaryFileWrapper')
@@ -203,3 +208,27 @@ def test_get_graph(api_client, mocker, response_200_with_url):
     assert file.write.called == True
     assert file.seek.called == True
 
+
+def test_raising_exception_when_creating_api_instance():
+    incorrect_token = "only_couple_of_chars"
+
+    with pytest.raises(Exception):
+        api.get_instance(token=incorrect_token)
+
+
+def test_get_algorithm(api_client, response_200_with_algorithm, mocker):
+    algorithm_id = 'another_algorithm'
+    mocker.patch('requests.get', return_value=response_200_with_algorithm)
+
+    response = api_client.get_algorithm(algorithm_id)
+
+    assert isinstance(response, Algorithm)
+
+
+def test_get_algorithms(api_client, response_200_with_algorithms, mocker):
+    mocker.patch('requests.get', return_value=response_200_with_algorithms)
+
+    responses = api_client.get_algorithms()
+
+    for response in responses:
+        assert isinstance(response, Algorithm)
