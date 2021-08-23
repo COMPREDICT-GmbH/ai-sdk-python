@@ -106,7 +106,19 @@ Depending on the algorithm's computation requirement `algorithm.result`, the res
 - **compredict.resources.Task**: holds a job id of the task that the user can query later to get the results.
 - **compredict.resources.Result**: contains the result of the algorithm + evaluation
 
-Example of sending data as `application/json`:
+**Create list of urls for callbacks**
+
+~~~python
+callback_url = ["https://me.myportal.cloudapp.azure.com", "http://me.mydata.s3.amazonaws.com/my_bucket",
+                "http://my_website/my_data.com"]
+~~~
+After creating a list, use it when running algorithm:
+
+~~~python
+results = algorithm.run(data, callback_url=callback_url, evaluate=False, encrypt=True)
+~~~ 
+
+**Example of sending data as `application/json`:**
 
 ~~~python
 X_test = dict(
@@ -148,7 +160,7 @@ else:  # not a Task, it is a Result Instance
     print(results.predictions)
 ~~~
 
-Example of sending data as `application/parquet`:
+**Example of sending data as `application/parquet`:**
 
 ~~~python
 import pandas as pd
@@ -162,7 +174,7 @@ algorithm = compredict_client.getAlgorithm('algorithm_id')
 result = algorithm.run(X_test, file_content_type="application/parquet")
 ~~~
 
-Example of sending data from parquet file:
+**Example of sending data from parquet file:**
 
 ~~~python
 algorithm = compredict_client.getAlgorithm('algorithm_id')
