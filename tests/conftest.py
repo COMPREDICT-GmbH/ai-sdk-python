@@ -24,7 +24,7 @@ def api_client(rsa_key):
     return api_client
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def unsucessful_content():
     unsucessful_content = {
         'error': "True",
@@ -34,7 +34,7 @@ def unsucessful_content():
     return unsucessful_content
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def successful_content():
     successful_content = {
         "error": "False",
@@ -43,7 +43,7 @@ def successful_content():
     return successful_content
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def response_400(unsucessful_content):
     response = Response()
     response.status_code = 400
@@ -51,7 +51,7 @@ def response_400(unsucessful_content):
     return response
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def response_500(unsucessful_content):
     response = Response()
     response.status_code = 500
@@ -59,7 +59,7 @@ def response_500(unsucessful_content):
     return response
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def response_200(successful_content):
     response_200 = Response()
     response_200.status_code = 200
@@ -69,7 +69,7 @@ def response_200(successful_content):
     return response_200
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def response_200_with_url(successful_content):
     response_200_with_url = Response()
     response_200_with_url.status_code = 200
@@ -78,7 +78,8 @@ def response_200_with_url(successful_content):
     response_200_with_url.headers['Content-Type'] = 'image/png'
     return response_200_with_url
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="session")
 def response_200_with_versions(versions):
     response_200_with_versions = Response()
     response_200_with_versions.status_code = 200
@@ -87,7 +88,8 @@ def response_200_with_versions(versions):
     response_200_with_versions.headers['Content-Type'] = 'application/json'
     return response_200_with_versions
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="session")
 def response_200_with_version(versions):
     response_200_with_version = Response()
     response_200_with_version.status_code = 200
@@ -96,7 +98,8 @@ def response_200_with_version(versions):
     response_200_with_version.headers['Content-Type'] = 'application/json'
     return response_200_with_version
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="session")
 def response_200_with_result(result):
     response_200_with_result = Response()
     response_200_with_result.status_code = 200
@@ -104,6 +107,28 @@ def response_200_with_result(result):
     response_200_with_result.url = 'https://core.compredict.ai/api/v1/algorithms/56'
     response_200_with_result.headers['Content-Type'] = 'application/json'
     return response_200_with_result
+
+
+@pytest.fixture(scope="session")
+def response_200_with_algorithm(algorithm):
+    response_200_with_algorithm = Response()
+    response_200_with_algorithm.status_code = 200
+    response_200_with_algorithm._content = json.dumps(algorithm).encode('utf-8')
+    response_200_with_algorithm.headers['Content-Type'] = 'application/json'
+    response_200_with_algorithm.url = 'https://core.compredict.ai/api/v1/algorithms/56'
+    return response_200_with_algorithm
+
+
+@pytest.fixture(scope="session")
+def response_200_with_algorithms(algorithm):
+    algorithms = [algorithm, algorithm, algorithm]
+    response_200_with_algorithms = Response()
+    response_200_with_algorithms.status_code = 200
+    response_200_with_algorithms._content = json.dumps(algorithms).encode('utf-8')
+    response_200_with_algorithms.headers['Content-Type'] = 'application/json'
+    response_200_with_algorithms.url = 'https://core.compredict.ai/api/v1/algorithms/56'
+    return response_200_with_algorithms
+
 
 @pytest.fixture(scope='session')
 def connection_with_fail_on_true():
@@ -118,13 +143,13 @@ def connection():
     return connection
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def task():
     task = Task()
     return task
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def object():
     object = {
         "status": "In Progress"
@@ -132,20 +157,20 @@ def object():
     return object
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def data():
     data = {"1": [346.5, 6456.6, 56.7], "2": [343.4, 34.6, 45.7]}
     return data
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def versions():
     versions = [{
         'version': '1.3.0',
         'change_description': 'New features added',
         'results': 'All the requests will be send to queue system',
         'features_format': [],
-        'output_format':[]
+        'output_format': []
     },
         {
             'version': '1.4.0',
@@ -157,12 +182,24 @@ def versions():
     return versions
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def result():
     result = {
         'reference': '12jffd',
-        'status' : "Finished",
+        'status': "Finished",
         'is_encrypted': False,
-        'results' : []
+        'results': []
     }
     return result
+
+
+@pytest.fixture(scope='session')
+def algorithm():
+    algorithm = {
+        'id': 'mass_estimation',
+        'name': 'Mass Estimation',
+        'description': 'Some description',
+        'versions': [{'mass_estimation': '1.0.0'}, {'mass_estimation': '2.0.0'}],
+        'evaluations': []
+    }
+    return algorithm
