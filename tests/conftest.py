@@ -78,6 +78,23 @@ def response_200_with_url(successful_content):
     response_200_with_url.headers['Content-Type'] = 'image/png'
     return response_200_with_url
 
+@pytest.fixture(scope="module")
+def response_200_with_versions(versions):
+    response_200_with_versions = Response()
+    response_200_with_versions.status_code = 200
+    response_200_with_versions._content = json.dumps(versions).encode('utf-8')
+    response_200_with_versions.url = 'https://core.compredict.ai/api/v1/algorithms/56'
+    response_200_with_versions.headers['Content-Type'] = 'application/json'
+    return response_200_with_versions
+
+@pytest.fixture(scope="module")
+def response_200_with_version(versions):
+    response_200_with_version = Response()
+    response_200_with_version.status_code = 200
+    response_200_with_version._content = json.dumps(versions[0]).encode('utf-8')
+    response_200_with_version.url = 'https://core.compredict.ai/api/v1/algorithms/56'
+    response_200_with_version.headers['Content-Type'] = 'application/json'
+    return response_200_with_version
 
 @pytest.fixture(scope='session')
 def connection_with_fail_on_true():
@@ -110,3 +127,23 @@ def object():
 def data():
     data = {"1": [346.5, 6456.6, 56.7], "2": [343.4, 34.6, 45.7]}
     return data
+
+
+@pytest.fixture(scope='module')
+def versions():
+    versions = [{
+        'version': '1.3.0',
+        'change_description': 'New features added',
+        'results': 'All the requests will be send to queue system',
+        'features_format': [],
+        'output_format':[]
+    },
+        {
+            'version': '1.4.0',
+            'change_description': 'Even more features added',
+            'results': 'All the requests will be send to queue system',
+            'features_format': [],
+            'output_format': []
+        }]
+    return versions
+
