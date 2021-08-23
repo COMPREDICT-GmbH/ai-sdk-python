@@ -1,18 +1,19 @@
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-from compredict.resources import resources
-from json import dumps as json_dump, dump
-from pandas import DataFrame
-from pandas.io.common import get_handle
 import base64
-from tempfile import NamedTemporaryFile
+from json import dumps as json_dump, dump
 from os import remove
 from os.path import exists
+from tempfile import NamedTemporaryFile
 from typing import Optional, Union, IO, List, Type
 
-from compredict.exceptions import ClientError, Error
-from compredict.singleton import Singleton
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+from pandas import DataFrame
+from pandas.io.common import get_handle
+
 from compredict.connection import Connection
+from compredict.exceptions import ClientError, Error
+from compredict.resources import resources
+from compredict.singleton import Singleton
 
 CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
@@ -80,8 +81,24 @@ class api:
     def last_error(self) -> Error:
         return self.connection.last_error
 
+    def set_callback_urls(self, callback_url: Union[list, str]) -> str:
+        """
+        Accept list of urls and format them into one string with dividing '|' in between.
+        This is the format accepted by ai core.
+        :param callback_url: list of callback urls
+        :return: one callback_url string
+        """
+
+        if type(callback_url) == list:
+            multiple_callback = "|".join(callback_url)
+        else:
+            multiple_callback = callback_url
+
+        return multiple_callback
+
     @staticmethod
-    def __map_resource(resource: str, a_object: Union[dict, bool]) -> Union[Type[resources.BaseResource], bool]:
+    def __map_resource(resource: str, a_object: Union[dict, bool]) -> Union[
+        Type[resources.BaseResource], bool]:
         """
         Map the result to the correct resource
 
@@ -99,7 +116,8 @@ class api:
         return instance
 
     @staticmethod
-    def __map_collection(resource: str, objects: Union[dict, bool]) -> Union[List[Type[resources.BaseResource]], bool]:
+    def __map_collection(resource: str, objects: Union[dict, bool]) -> Union[
+        List[Type[resources.BaseResource]], bool]:
         """
         Create a list of resources if the results returns a list
 
@@ -149,7 +167,8 @@ class api:
         :return: opened file, str, bool
         """
         if content_type is not None and content_type not in CONTENT_TYPES:
-            raise ValueError("`{}` is not one of the allowed content types: {}".format(content_type, CONTENT_TYPES))
+            raise ValueError("`{}` is not one of the allowed content types: {}".format(content_type,
+                                                                                       CONTENT_TYPES))
 
         if isinstance(data, str):
             return open(data, "rb+"), content_type, False
@@ -195,7 +214,8 @@ class api:
                       callback_url: Optional[str] = None,
                       callback_param: Optional[dict] = None,
                       file_content_type: Optional[str] = None,
-                      compression: Optional[str] = None) -> Union[resources.Task, resources.Result, bool]:
+                      compression: Optional[str] = None) -> Union[
+        resources.Task, resources.Result, bool]:
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
@@ -219,7 +239,8 @@ class api:
 
         file, to_remove = None, False
         try:
-            file, file_content_type, to_remove = self.__process_data(data, file_content_type, compression=compression)
+            file, file_content_type, to_remove = self.__process_data(data, file_content_type,
+                                                                     compression=compression)
             callback_url = callback_url if callback_url is not None else self.callback_url
             params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
@@ -227,7 +248,8 @@ class api:
             if encrypt:
                 self.RSA_encrypt(file)
             files = {"features": ('features.json', file, file_content_type)}
-            response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id), data=params, files=files)
+            response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id),
+                                            data=params, files=files)
             resource = 'Task' if response is not False and 'job_id' in response else 'Result'
         except Exception as e:
             raise ClientError(e)
@@ -273,7 +295,8 @@ class api:
             [response[i].update(dict(algorithm_id=algorithm_id)) for i in range(len(response))]
         return self.__map_collection('Version', response)
 
-    def get_algorithm_version(self, algorithm_id: str, version: str) -> Union[resources.Version, bool]:
+    def get_algorithm_version(self, algorithm_id: str, version: str) -> Union[
+        resources.Version, bool]:
         """
         Get a specific version of an algorithm.
 
@@ -303,7 +326,8 @@ class api:
         response = self.connection.GET('/algorithms/{}/template{}'.format(algorithm_id, get_args))
         return response
 
-    def get_graph(self, algorithm_id: str, file_type: str, version: Optional[str] = None) -> NamedTemporaryFile:
+    def get_graph(self, algorithm_id: str, file_type: str,
+                  version: Optional[str] = None) -> NamedTemporaryFile:
         """
         Return the graph that explains the input data to be sent for the algorithms.
 
@@ -319,7 +343,8 @@ class api:
 
     @staticmethod
     def __build_get_args(**kwargs):
-        return "?" + "&".join(["{}={}".format(key, value) for key, value in kwargs.items() if value is not None])
+        return "?" + "&".join(
+            ["{}={}".format(key, value) for key, value in kwargs.items() if value is not None])
 
     def RSA_encrypt(self, data: Union[str, IO], chunk_size: int = 214):
         """
