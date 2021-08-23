@@ -212,8 +212,8 @@ class api:
                       version: Optional[str] = None,
                       evaluate: bool = True,
                       encrypt: bool = False,
-                      callback_url: Optional[str] = None,
-                      callback_param: Optional[dict] = None,
+                      callback_url: Optional[Union[str, list]] = None,
+                      callback_param: Optional[Union[dict, list]] = None,
                       file_content_type: Optional[str] = None,
                       compression: Optional[str] = None) -> Union[
         resources.Task, resources.Result, bool]:
@@ -226,6 +226,10 @@ class api:
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
         :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
         :param callback_url: The callback url that will override the callback url in the class.
+                             If multiple callback_urls are specified, different parameters can be defined for each
+                             url. In this case list of dictionaries is required. If single
+                             callback dictionary is passed with list of callback urls - then the
+                             same parameters will be used with all callback urls.
         :param callback_param: The callback additional parameter to be sent back when requesting the results.
         :param file_content_type: type of data to be sent to AI Core.
         :param compression: The compressed type of the data, the compression supported is what pandas supports \
@@ -242,7 +246,8 @@ class api:
         try:
             file, file_content_type, to_remove = self.__process_data(data, file_content_type,
                                                                      compression=compression)
-            callback_url = callback_url if callback_url is not None else self.callback_url
+            callback_url = self.set_callback_urls(
+                callback_url) if callback_url is not None else self.callback_url
             params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
