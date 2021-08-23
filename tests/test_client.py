@@ -180,11 +180,26 @@ def test_get_algorithm_version(api_client, mocker, response_200_with_version):
     assert response.version == version
 
 
-def test_get_template(api_client, mocker):
-    mocker.patch('requests.get')
-    pass
+def test_get_template(api_client, mocker, response_200_with_url):
+
+    algorithm_id = 'algorithm'
+    mocker.patch('requests.get', return_value = response_200_with_url)
+    mocker.patch('tempfile._TemporaryFileWrapper')
+
+    file = api_client.get_template(algorithm_id)
+
+    assert file.write.called == True
+    assert file.seek.called == True
 
 
-def test_get_graph(api_client, mocker):
-    mocker.patch('requests.get')
-    pass
+def test_get_graph(api_client, mocker, response_200_with_url):
+
+    algorithm_id = 'another_algorithm'
+    mocker.patch('requests.get', return_value=response_200_with_url)
+    mocker.patch('tempfile._TemporaryFileWrapper')
+
+    file = api_client.get_graph(algorithm_id=algorithm_id, file_type='input')
+
+    assert file.write.called == True
+    assert file.seek.called == True
+
