@@ -96,6 +96,15 @@ def response_200_with_version(versions):
     response_200_with_version.headers['Content-Type'] = 'application/json'
     return response_200_with_version
 
+@pytest.fixture(scope="module")
+def response_200_with_result(result):
+    response_200_with_result = Response()
+    response_200_with_result.status_code = 200
+    response_200_with_result._content = json.dumps(result).encode('utf-8')
+    response_200_with_result.url = 'https://core.compredict.ai/api/v1/algorithms/56'
+    response_200_with_result.headers['Content-Type'] = 'application/json'
+    return response_200_with_result
+
 @pytest.fixture(scope='session')
 def connection_with_fail_on_true():
     connection_with_fail_on_true = Connection(url="https://core.compredict.ai/api/")
@@ -147,3 +156,13 @@ def versions():
         }]
     return versions
 
+
+@pytest.fixture(scope='module')
+def result():
+    result = {
+        'reference': '12jffd',
+        'status' : "Finished",
+        'is_encrypted': False,
+        'results' : []
+    }
+    return result

@@ -3,7 +3,7 @@ import json
 import pytest
 
 from compredict.exceptions import ClientError
-from compredict.resources import Task, Algorithm
+from compredict.resources import Task, Algorithm, Version, Result
 
 
 @pytest.mark.parametrize("callback,expected",
@@ -33,7 +33,6 @@ def test_fail_on_error_and_verify_peer(api_client, option, expected):
 
 
 def test_last_error(response_400, mocker, connection):
-
     mocker.patch('requests.get', return_value=response_400)
     connection.GET(endpoint="some/endpoint")
     actual_last_error = connection.last_error
@@ -153,3 +152,39 @@ def test_build_get_arguments(api_client):
     expected = "?type=input&version=1.2.2"
 
     assert actual == expected
+
+
+def test_get_task_results(api_client, mocker, response_200_with_result):
+
+    task_id = '12jffd'
+    mocker.patch('requests.get', return_value=response_200_with_result)
+    response = api_client.get_task_results(task_id)
+    assert isinstance(response, Task)
+    assert response.reference == task_id
+
+
+def test_get_algorithm_versions(api_client, mocker, response_200_with_versions):
+    algorithm_id = 'mass_estimation'
+    mocker.patch('requests.get', return_value=response_200_with_versions)
+    response = api_client.get_algorithm_versions(algorithm_id)
+    assert isinstance(response[0], Version)
+    assert isinstance(response[1], Version)
+
+
+def test_get_algorithm_version(api_client, mocker, response_200_with_version):
+    algorithm_id = 'co2_emission'
+    version = '1.3.0'
+    mocker.patch('requests.get', return_value=response_200_with_version)
+    response = api_client.get_algorithm_version(algorithm_id, version)
+    assert isinstance(response, Version)
+    assert response.version == version
+
+
+def test_get_template(api_client, mocker):
+    mocker.patch('requests.get')
+    pass
+
+
+def test_get_graph(api_client, mocker):
+    mocker.patch('requests.get')
+    pass
