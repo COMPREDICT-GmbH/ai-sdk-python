@@ -9,7 +9,6 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from pandas import DataFrame
 from pandas.io.common import get_handle
-from typing.io import BinaryIO
 
 from compredict.connection import Connection
 from compredict.exceptions import ClientError, Error
@@ -81,6 +80,21 @@ class api:
     @property
     def last_error(self) -> Error:
         return self.connection.last_error
+
+    def _set_callback_urls(self, callback_url: Union[List[str], str]) -> str:
+        """
+        Accept list of urls and format them into one string with dividing '|' in between.
+        This is the format accepted by ai core.
+        :param callback_url: list of callback urls
+        :return: one callback_url string
+        """
+
+        if isinstance(callback_url, list):
+            multiple_callback = "|".join(callback_url)
+        else:
+            multiple_callback = callback_url
+
+        return multiple_callback
 
     @staticmethod
     def __map_resource(resource: str, a_object: Union[dict, bool]) -> Union[
@@ -197,8 +211,8 @@ class api:
                       version: Optional[str] = None,
                       evaluate: bool = True,
                       encrypt: bool = False,
-                      callback_url: Optional[str] = None,
-                      callback_param: Optional[dict] = None,
+                      callback_url: Optional[Union[str, List[str]]] = None,
+                      callback_param: Optional[Union[dict, List[dict]]] = None,
                       file_content_type: Optional[str] = None,
                       compression: Optional[str] = None) -> Union[
         resources.Task, resources.Result, bool]:
@@ -210,7 +224,11 @@ class api:
         :param version: Choose the version of the algorithm you would like to call. Default is latest version.
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
         :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
-        :param callback_url: The callback url that will override the callback url in the class.
+        :param callback_param: The callback additional parameter to be sent back when requesting the results.
+                               If multiple callback_urls are specified, different parameters can be defined for each
+                               url. In this case list of dictionaries is required. If single callback dictionary is
+                               passed with list of callback urls - then the same parameters will be used with all
+                               callback urls.
         :param callback_param: The callback additional parameter to be sent back when requesting the results.
         :param file_content_type: type of data to be sent to AI Core.
         :param compression: The compressed type of the data, the compression supported is what pandas supports \
@@ -227,7 +245,10 @@ class api:
         try:
             file, file_content_type, to_remove = self.__process_data(data, file_content_type,
                                                                      compression=compression)
-            callback_url = callback_url if callback_url is not None else self.callback_url
+
+            callback_url = self.set_callback_urls(
+                callback_url) if callback_url is not None else self.callback_url
+
             params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
