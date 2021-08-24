@@ -81,7 +81,7 @@ class api:
     def last_error(self) -> Error:
         return self.connection.last_error
 
-    def _set_callback_urls(self, callback_url: Union[list, str]) -> str:
+    def _set_callback_urls(self, callback_url: Union[List[str], str]) -> str:
         """
         Accept list of urls and format them into one string with dividing '|' in between.
         This is the format accepted by ai core.
@@ -211,8 +211,8 @@ class api:
                       version: Optional[str] = None,
                       evaluate: bool = True,
                       encrypt: bool = False,
-                      callback_url: Optional[Union[str, list]] = None,
-                      callback_param: Optional[Union[dict, list]] = None,
+                      callback_url: Optional[Union[str, List[str]]] = None,
+                      callback_param: Optional[Union[dict, List[dict]]] = None,
                       file_content_type: Optional[str] = None,
                       compression: Optional[str] = None) -> Union[
         resources.Task, resources.Result, bool]:
