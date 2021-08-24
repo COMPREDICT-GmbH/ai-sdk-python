@@ -11,8 +11,10 @@ with open(os.path.join(this_dir, 'requirements.txt')) as fo:
     requirements = fo.read().splitlines()
 
 dev_requirements = [
-    "flake8==3.8.3",
-    'coverage==4.5.1'
+    "flake8~=3.9.2",
+    'pytest~=6.2.4',
+    'pytest-mock~=3.6.1',
+    'pytest-cov~=2.12.1',
 ]
 
 setup(
