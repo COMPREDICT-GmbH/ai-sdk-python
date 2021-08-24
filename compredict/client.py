@@ -89,7 +89,7 @@ class api:
         :return: one callback_url string
         """
 
-        if type(callback_url) == list:
+        if isinstance(callback_url, list):
             multiple_callback = "|".join(callback_url)
         else:
             multiple_callback = callback_url
