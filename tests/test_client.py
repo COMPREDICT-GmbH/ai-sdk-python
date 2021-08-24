@@ -209,13 +209,6 @@ def test_get_graph(api_client, mocker, response_200_with_url):
     assert file.seek.called == True
 
 
-def test_raising_exception_when_creating_api_instance():
-    incorrect_token = "only_couple_of_chars"
-
-    with pytest.raises(Exception):
-        api.get_instance(token=incorrect_token)
-
-
 def test_get_algorithm(api_client, response_200_with_algorithm, mocker):
     algorithm_id = 'another_algorithm'
     mocker.patch('requests.get', return_value=response_200_with_algorithm)
@@ -232,3 +225,26 @@ def test_get_algorithms(api_client, response_200_with_algorithms, mocker):
 
     for response in responses:
         assert isinstance(response, Algorithm)
+
+
+def test_process_evaluate_with_dict(api_client):
+    evaluate_param = {
+        'feature': 'evaluation'
+    }
+
+    evaluation = api_client._api__process_evaluate(evaluate_param)
+    expected = '{"feature": "evaluation"}'
+    assert evaluation == expected
+
+######################################################################################
+def test_raising_exception_when_creating_api_instance():
+    """ Due to creating another instance of a Singleton in this test,
+    it works only when run independently. If the scope of api_client fixture
+    would be set as 'function', it would work correctly in a suite, but such action
+    would slow down all the tests in a suite."""
+    incorrect_token = "only_couple_of_chars"
+
+    with pytest.raises(Exception):
+        api.get_instance(token=incorrect_token)
+
+
