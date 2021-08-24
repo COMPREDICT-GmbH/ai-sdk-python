@@ -2,9 +2,8 @@ import json
 
 import pytest
 
-from compredict import api
 from compredict.exceptions import ClientError
-from compredict.resources import Task, Algorithm, Version, Result
+from compredict.resources import Task, Algorithm, Version
 
 
 @pytest.mark.parametrize("callback,expected",
@@ -16,7 +15,7 @@ from compredict.resources import Task, Algorithm, Version, Result
                              ('just/a/string', 'just/a/string')
                          ])
 def test_set_callback_urls(api_client, callback, expected):
-    actual = api_client.set_callback_urls(callback)
+    actual = api_client._set_callback_urls(callback)
 
     assert actual == expected
 
@@ -194,8 +193,8 @@ def test_get_template(api_client, mocker, response_200_with_url):
 
     file = api_client.get_template(algorithm_id)
 
-    assert file.write.called == True
-    assert file.seek.called == True
+    assert file.write.called is True
+    assert file.seek.called is True
 
 
 def test_get_graph(api_client, mocker, response_200_with_url):
@@ -205,8 +204,8 @@ def test_get_graph(api_client, mocker, response_200_with_url):
 
     file = api_client.get_graph(algorithm_id=algorithm_id, file_type='input')
 
-    assert file.write.called == True
-    assert file.seek.called == True
+    assert file.write.called is True
+    assert file.seek.called is True
 
 
 def test_get_algorithm(api_client, response_200_with_algorithm, mocker):
@@ -235,16 +234,3 @@ def test_process_evaluate_with_dict(api_client):
     evaluation = api_client._api__process_evaluate(evaluate_param)
     expected = '{"feature": "evaluation"}'
     assert evaluation == expected
-
-######################################################################################
-def test_raising_exception_when_creating_api_instance():
-    """ Due to creating another instance of a Singleton in this test,
-    it works only when run independently. If the scope of api_client fixture
-    would be set as 'function', it would work correctly in a suite, but such action
-    would slow down all the tests in a suite."""
-    incorrect_token = "only_couple_of_chars"
-
-    with pytest.raises(Exception):
-        api.get_instance(token=incorrect_token)
-
-

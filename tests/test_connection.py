@@ -29,8 +29,8 @@ def test_handle_response_with_last_error(connection, response_400, response_500)
     response_400 = connection._Connection__handle_response(response_400)
     response_500 = connection._Connection__handle_response(response_500)
 
-    assert response_400 == False
-    assert response_500 == False
+    assert response_400 is False
+    assert response_500 is False
 
 
 def test_handle_response_with_graph(connection, response_200_with_url, mocker):
@@ -38,7 +38,7 @@ def test_handle_response_with_graph(connection, response_200_with_url, mocker):
 
     connection._Connection__handle_response(response_200_with_url)
 
-    assert mocked_wrapper.called == True
+    assert mocked_wrapper.called is True
 
 
 def test_handle_successful_response(connection, response_200):
@@ -82,7 +82,7 @@ def test_unsuccessful_POST(connection, response_400, mocker):
     mocker.patch('requests.post', return_value=response_400)
     actual_response = connection.POST(endpoint=endpoint, data=data)
 
-    assert actual_response == False
+    assert actual_response is False
 
 
 def test_successful_GET(connection, response_200, mocker):
@@ -106,7 +106,7 @@ def test_unsuccessful_GET(connection, response_500, mocker):
 
     actual_response = connection.GET(endpoint=endpoint)
 
-    assert actual_response == False
+    assert actual_response is False
 
 
 def test_create_headers_with_auth():
