@@ -81,7 +81,7 @@ class api:
     def last_error(self) -> Error:
         return self.connection.last_error
 
-    def set_callback_urls(self, callback_url: Union[list, str]) -> str:
+    def _set_callback_urls(self, callback_url: Union[list, str]) -> str:
         """
         Accept list of urls and format them into one string with dividing '|' in between.
         This is the format accepted by ai core.
