@@ -203,8 +203,10 @@ class api:
         :type compression: string.
         :return: saved file.
         """
-        io_handles = get_handle(t_file.name, "w", compression=compression)
-        with io_handles.handle as f:
+        file = get_handle(t_file.name, "w", compression=compression)
+        file = file[0] if isinstance(file, tuple) else file.handle
+
+        with file as f:
             dump(data, f)
         t_file.seek(0)
 
