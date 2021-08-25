@@ -1,7 +1,8 @@
-import requests
-from compredict.exceptions import ClientError, ServerError
 from tempfile import NamedTemporaryFile
 
+import requests
+
+from compredict.exceptions import ClientError, ServerError
 from compredict.exceptions import Error
 
 
