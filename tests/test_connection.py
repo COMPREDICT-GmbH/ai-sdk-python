@@ -73,7 +73,7 @@ def test_successful_POST_with_file(connection, response_200, mocker, data):
     expected = {'error': 'False', 'result': 'some result'}
     assert actual_result == expected
     with pytest.raises(KeyError):
-        type = connection.headers['Content-Type']
+        connection.headers['Content-Type']
 
 
 def test_unsuccessful_POST(connection, response_400, mocker):
