@@ -203,8 +203,8 @@ class api:
         :type compression: string.
         :return: saved file.
         """
-        file, _ = get_handle(t_file.name, "w", compression=compression)
-        with file as f:
+        io_handles = get_handle(t_file.name, "w", compression=compression)
+        with io_handles.handle as f:
             dump(data, f)
         t_file.seek(0)
 
