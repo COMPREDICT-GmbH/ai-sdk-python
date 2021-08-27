@@ -36,7 +36,7 @@ jobs:
     needs:  style_check 
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 4
+      max-parallel: 2
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
