@@ -3,7 +3,6 @@ from compredict.resources import resources
 from time import sleep
 from environs import Env
 from sys import exit
-import shutil
 
 env = Env()
 env.read_env()
@@ -56,5 +55,3 @@ if isinstance(results, resources.Task):
 
 else:
     print(results.predictions)
-
-
