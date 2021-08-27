@@ -57,4 +57,4 @@ jobs:
     
     - name: run tests   
       run: |
-        pytest tests/test_connection.py 
+        pytest tests/ --fixtures tests/conftest.py 
