@@ -3,21 +3,15 @@ COMPREDICT's AI CORE API Client
 
 Python client for connecting to the COMPREDICT V1 REST API.
 
-To find out more, visit the official documentation website:
-https://compredict.de
+To find out more, visit COMPREDICT website:
+https://compredict.ai/ai-core/
 
 Requirements
 ------------
 
-- Python >= 3.4
-- Requests >= 2.2.0
-- pycryptodome==3.9.4
-- pandas>=0.20.3,<1.0.0
-
 **To connect to the API with basic auth you need the following:**
 
 - API Key taken from COMPREDICT's User Dashboard
-- Username of the account.
 - (Optional) Callback url to send the results
 - (Optional) Private key for decrypting the messages.
 
@@ -46,7 +40,7 @@ import compredict
 compredict_client = compredict.client.api.get_instance(token=token, callback_url=None, ppk=None, passphrase="")
 ~~~
 
-We highly advice that the SDK information are stored as environment variables and called used `environ`.
+We highly advice that the SDK information are stored as environment variables.
 
 Accessing Algorithms (GET)
 --------------------------
@@ -94,8 +88,8 @@ Task|Result = algorithm.run(data, evaluate=True, encrypt=False, callback_url=Non
    - `pandas`: DataFrame containing the data, set the `file_content_type` to convert the content to appropriate file. 
 - `evaluate`: to evaluate the result of the algorithm. Check `algorithm.evaluations`, *more in depth later*.
 - `encrypt`: to encrypt the data using RSA AES, *more in depth later*.
-- `callback_url`: If the result is `Task`, then AI core will send back the results to the provided URL once processed.
-- `callback_param`: additional parameters to pass when results are sent to callback url.
+- `callback_url`: If the result is `Task`, then AI core will send back the results to the provided URL once processed. It can be multiple callbacks
+- `callback_param`: additional parameters to pass when results are sent to callback url. In case of multiple callbacks, it can be a single callback params for all, or multiple callback params for each callback url.
 - `file_content_type`: The type of data to be sent. Based on `algorithm.accepted_file_format`. it could be:
     - `application/json`: for dict data.
     - `text/csv`: when passing pandas DataFrame.
@@ -106,7 +100,19 @@ Depending on the algorithm's computation requirement `algorithm.result`, the res
 - **compredict.resources.Task**: holds a job id of the task that the user can query later to get the results.
 - **compredict.resources.Result**: contains the result of the algorithm + evaluation
 
-Example of sending data as `application/json`:
+**Create list of urls for callbacks**
+
+~~~python
+callback_url = ["https://me.myportal.cloudapp.azure.com", "http://me.mydata.s3.amazonaws.com/my_bucket",
+                "http://my_website/my_data.com"]
+~~~
+After creating a list, use it when running algorithm:
+
+~~~python
+results = algorithm.run(data, callback_url=callback_url, evaluate=False, encrypt=True)
+~~~ 
+
+**Example of sending data as `application/json`:**
 
 ~~~python
 X_test = dict(
@@ -148,7 +154,7 @@ else:  # not a Task, it is a Result Instance
     print(results.predictions)
 ~~~
 
-Example of sending data as `application/parquet`:
+**Example of sending data as `application/parquet`:**
 
 ~~~python
 import pandas as pd
@@ -162,7 +168,7 @@ algorithm = compredict_client.getAlgorithm('algorithm_id')
 result = algorithm.run(X_test, file_content_type="application/parquet")
 ~~~
 
-Example of sending data from parquet file:
+**Example of sending data from parquet file:**
 
 ~~~python
 algorithm = compredict_client.getAlgorithm('algorithm_id')

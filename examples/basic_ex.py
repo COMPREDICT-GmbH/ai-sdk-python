@@ -1,7 +1,7 @@
 from compredict.client import api
 from compredict.resources import resources
 from time import sleep
-from environs import Env
+from environ import Env
 from sys import exit
 import shutil
 
@@ -18,9 +18,9 @@ client = api.get_instance(token=token, callback_url=callback_url, ppk=ppk, passp
 client.fail_on_error(option=fail_on_error)
 
 # get a graph
-# algorithm = client.get_algorithm("auto-parameterization")
+# algorithm = client.get_algorithm("an-algorithm-id")
 # graph = algorithm.get_detailed_graph()
-# new_file = open('auto-parameterization-graph.png', 'wb')
+# new_file = open('algorithm-input-graph.png', 'wb')
 # shutil.copyfileobj(graph, new_file)
 # graph.close()
 
