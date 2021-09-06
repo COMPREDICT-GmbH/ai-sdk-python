@@ -1,7 +1,7 @@
 from compredict.client import api
 from compredict.resources import resources
 from time import sleep
-from environs import Env
+from environ import Env
 from sys import exit
 import shutil
 
