@@ -1,7 +1,10 @@
 
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-
-on: push
+# https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+on: 
+  push:
+    tags:
+      - "v*"
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
@@ -29,14 +32,13 @@ jobs:
     - name: Publish distribution 📦 to Test PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
-        password: 'pypi-AgEIcHlwaS5vcmcCJDE3Y2I2ZDVhLTJhMjMtNDIwZC1hNTllLWU1NTZmNjYyOWQxYQACJXsicGVybWlzc2lvbnMiOiAidXNlciIsICJ2ZXJzaW9uIjogMX0AAAYggpNye5wXJbkkjEwfBUAeFoS29QRY1xwbOWJ4CGmmWqo'
+        password: 'pwd goes here' # ${{ secrets.TWINE_TOKEN }}
         repository_url: https://test.pypi.org/legacy/
     
     - name: Publish distribution 📦 to PyPI
-      #if: startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
       with:
-        password: 'pypi-AgEIcHlwaS5vcmcCJDE3Y2I2ZDVhLTJhMjMtNDIwZC1hNTllLWU1NTZmNjYyOWQxYQACJXsicGVybWlzc2lvbnMiOiAidXNlciIsICJ2ZXJzaW9uIjogMX0AAAYggpNye5wXJbkkjEwfBUAeFoS29QRY1xwbOWJ4CGmmWqo'
+        password:  'pwd goes here' # ${{ secrets.TWINE_TOKEN }}
 
 #
 #name: push new release to pypi server  
