@@ -7,6 +7,7 @@ on:
       - "v*"
 jobs:
   build-n-publish:
+    environment: PYPI  
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
     steps:
@@ -32,13 +33,13 @@ jobs:
     - name: Publish distribution 📦 to Test PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
-        password: ${{ env.TOKEN }}
+        password: ${{ secrets.TOKEN }}
         repository_url: https://test.pypi.org/legacy/
     
     - name: Publish distribution 📦 to PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
-        password: ${{ env.TOKEN}}
+        password: ${{ secrets.TOKEN}}
 
 #
 #name: push new release to pypi server  
