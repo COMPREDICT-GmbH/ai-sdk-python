@@ -21,9 +21,10 @@ setup(
     # Application name:
     name="COMPREDICT-AI-SDK",
 
-    # Version number (initial):
-    version="1.0.2",
-
+    # Version number:
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
+    
     # Application author details:
     author="Ousama Esbel",
     author_email="esbel@compredict.de",
