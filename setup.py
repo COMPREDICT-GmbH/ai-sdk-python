@@ -24,7 +24,7 @@ setup(
     # Version number:
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
-    
+
     # Application author details:
     author="Ousama Esbel",
     author_email="esbel@compredict.de",
@@ -48,5 +48,5 @@ setup(
     install_requires=requirements,
     extras_require={
             'dev': dev_requirements
-        }
+    }
 )
