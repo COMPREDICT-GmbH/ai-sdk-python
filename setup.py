@@ -21,8 +21,9 @@ setup(
     # Application name:
     name="COMPREDICT-AI-SDK",
 
-    # Version number (initial):
-    version="1.0.0",
+    # Version number:
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
 
     # Application author details:
     author="Ousama Esbel",
@@ -47,5 +48,5 @@ setup(
     install_requires=requirements,
     extras_require={
             'dev': dev_requirements
-        }
+    }
 )
