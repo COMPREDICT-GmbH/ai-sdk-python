@@ -64,6 +64,18 @@ class Connection:
         self.last_request = requests.get(address, None, headers=self.headers)
         return self.__handle_response(self.last_request)
 
+    def DELETE(self, endpoint):
+        """
+        Responsible for canceling the job.
+
+        :param endpoint: targeted delete endpoint
+        :return: JSON with task instance otherwise
+        """
+        address = self.url + endpoint
+        self.headers['Content-Type'] = 'application/json'
+        self.last_request = requests.delete(address, None, headers=self.headers)
+        return self.__handle_response(self.last_request)
+
     def __handle_response(self, request):
         """
         Handles the requests based on the status code. In addition it raises exception if fail_on_error is True.
