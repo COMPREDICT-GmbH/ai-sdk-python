@@ -50,6 +50,16 @@ def successful_content():
 
 
 @pytest.fixture(scope="session")
+def successful_cancel_task_response():
+    successful_task_response = {
+        "job_id": '35f438fd-6c4d-42a1-8ad0-dfa8dbfcf5da',
+        "status": 'Canceled',
+        "callback_param": None
+    }
+    return successful_task_response
+
+
+@pytest.fixture(scope="session")
 def response_400(unsucessful_content):
     response = Response()
     response.status_code = 400
@@ -73,6 +83,24 @@ def response_200(successful_content):
     response_200.url = 'https://core.compredict.ai/api/v1/algorithms/56'
     response_200.headers['Content-Type'] = 'application/json'
     return response_200
+
+
+@pytest.fixture(scope="session")
+def response_202_cancelled_task(successful_cancel_task_response):
+    response_202_cancelled_task = Response()
+    response_202_cancelled_task.status_code = 202
+    response_202_cancelled_task._content = json.dumps(successful_cancel_task_response).encode('utf-8')
+    response_202_cancelled_task.url = "https://core.compredict.ai/api/v1/algorithms/tasks/56"
+    return response_202_cancelled_task
+
+
+@pytest.fixture(scope="session")
+def response_404_task_not_found(unsucessful_content):
+    response_404_task_not_found = Response()
+    response_404_task_not_found.status_code = 404
+    response_404_task_not_found._content = json.dumps(unsucessful_content).encode('utf-8')
+    response_404_task_not_found.url = "https://core.compredict.ai/api/v1/algorithms/tasks/56"
+    return response_404_task_not_found
 
 
 @pytest.fixture(scope="session")

@@ -1,6 +1,7 @@
-from typing import Union, List
-from pandas import DataFrame
 from tempfile import NamedTemporaryFile
+from typing import Union, List
+
+from pandas import DataFrame
 
 from compredict.resources.base import BaseResource
 
@@ -94,7 +95,6 @@ class Result(BaseResource):
 
 
 class Task(BaseResource):
-
     STATUS_PENDING = "Pending"
     STATUS_PROGRESS = "In Progress"
     STATUS_FINISHED = "Finished"
@@ -113,6 +113,10 @@ class Task(BaseResource):
 
     def get_current_status(self) -> str:
         return self.status
+
+    def cancel(self):
+        task = self.client.cancel_task(self.job_id)
+        self.__dict__.update(task.__dict__)
 
     def _set_results(self, predictions: dict, evaluations: dict):
         self.predictions = None

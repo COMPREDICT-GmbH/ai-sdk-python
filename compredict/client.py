@@ -284,6 +284,16 @@ class api:
             return json_dump(evaluate)
         return evaluate
 
+    def cancel_task(self, task_id: str) -> Union[resources.Task, bool]:
+        """
+        Cancel running Task.
+
+        :param task_id: String identifier of the job.
+        :return: Cancelled task instance.
+        """
+        response = self.connection.DELETE('/algorithms/tasks/{}'.format(task_id))
+        return self.__map_resource('Task', response)
+
     def get_task_results(self, task_id: str) -> Union[resources.Task, bool]:
         """
         Check COMPREDICT'S AI Core for the results of the computation.
