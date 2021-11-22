@@ -115,3 +115,18 @@ def test_create_headers_with_auth():
     actual = connection.headers['Authorization']
     expected = 'Token 1234token1234'
     assert actual == expected
+
+
+def test_successful_DELETE(connection, response_202_cancelled_task, mocker, successful_cancel_task_response):
+    endpoint = 'api/v1/algorithms/tasks/2323234sdfsdf'
+    mocker.patch('requests.delete', return_value=response_202_cancelled_task)
+    expected = successful_cancel_task_response
+    actual = connection.DELETE(endpoint=endpoint)
+    assert actual == expected
+
+
+def test_usuccessful_DELETE(connection, response_404_task_not_found, mocker):
+    endpoint = 'api/v1/algorithms/tasks/2323dfsdf'
+    mocker.patch('requests.delete', return_value=response_404_task_not_found)
+    actual = connection.DELETE(endpoint=endpoint)
+    assert actual is False

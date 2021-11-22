@@ -234,3 +234,10 @@ def test_process_evaluate_with_dict(api_client):
     evaluation = api_client._api__process_evaluate(evaluate_param)
     expected = '{"feature": "evaluation"}'
     assert evaluation == expected
+
+
+def test_cancel_task(api_client, mocker, response_202_cancelled_task):
+    task_id = '35f438fd-6c4d-42a1-8ad0-dfa8dbfcf5da'
+    mocker.patch('requests.delete', return_value=response_202_cancelled_task)
+    cancelled_task = api_client.cancel_task(task_id)
+    assert isinstance(cancelled_task, Task)
