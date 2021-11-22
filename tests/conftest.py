@@ -54,8 +54,7 @@ def successful_cancel_task_response():
     successful_task_response = {
         "job_id": '35f438fd-6c4d-42a1-8ad0-dfa8dbfcf5da',
         "status": 'Canceled',
-        "callback_param": None,
-        "is_canceled": True
+        "callback_param": None
     }
     return successful_task_response
 
