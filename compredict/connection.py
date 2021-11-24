@@ -1,3 +1,4 @@
+from json import JSONDecodeError
 from tempfile import NamedTemporaryFile
 
 import requests
@@ -88,6 +89,18 @@ class Connection:
                 raise ClientError(request.json())
             else:
                 error = Error(request.json(), request.status_code)
+                self.last_error = error
+                return False
+
+        elif 502 == request.status_code:
+            err_msg = "Bad Gateway. Invalid response from upstream server."
+            if self.fail_on_error:
+                raise ServerError(err_msg)
+            else:
+                try:
+                    error = Error(request.json(), request.status_code)
+                except JSONDecodeError:
+                    error = Error(response=err_msg, is_json=False, status_code=request.status_code)
                 self.last_error = error
                 return False
 
