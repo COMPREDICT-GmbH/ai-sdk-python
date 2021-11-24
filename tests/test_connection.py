@@ -136,4 +136,4 @@ def test_unsuccessful_GET_with_502(mocker, connection, response_502_with_html):
     endpoint = 'api/v1/algorithms/'
     mocker.patch('requests.get', return_value=response_502_with_html)
     actual_response = connection.GET(endpoint=endpoint)
-    assert actual_response == False
+    assert actual_response is False
