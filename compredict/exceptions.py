@@ -23,7 +23,6 @@ class Error(object):
             self.messages = [response]
             self.status_code = status_code
 
-
     def __str__(self):
         return " ".join(self.messages)
 
