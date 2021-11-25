@@ -130,3 +130,10 @@ def test_usuccessful_DELETE(connection, response_404_task_not_found, mocker):
     mocker.patch('requests.delete', return_value=response_404_task_not_found)
     actual = connection.DELETE(endpoint=endpoint)
     assert actual is False
+
+
+def test_unsuccessful_GET_with_502(mocker, connection, response_502_with_html):
+    endpoint = 'api/v1/algorithms/'
+    mocker.patch('requests.get', return_value=response_502_with_html)
+    actual_response = connection.GET(endpoint=endpoint)
+    assert actual_response is False

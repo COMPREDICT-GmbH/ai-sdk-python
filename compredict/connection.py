@@ -1,3 +1,4 @@
+from json import JSONDecodeError
 from tempfile import NamedTemporaryFile
 
 import requests
@@ -92,10 +93,17 @@ class Connection:
                 return False
 
         elif 500 <= request.status_code <= 599:
+            try:
+                err_msg = request.json()
+                is_json = True
+            except JSONDecodeError:
+                err_msg = "Internal Server Error"
+                is_json = False
+
             if self.fail_on_error:
-                raise ServerError(request.json())
+                raise ServerError(f"{request.status_code}: {err_msg}")
             else:
-                error = Error(request.json(), request.status_code)
+                error = Error(err_msg, status_code=request.status_code, is_json=is_json)
                 self.last_error = error
                 return False
 
