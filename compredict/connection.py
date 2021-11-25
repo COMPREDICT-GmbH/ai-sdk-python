@@ -92,8 +92,8 @@ class Connection:
                 self.last_error = error
                 return False
 
-        elif 502 == request.status_code:
-            err_msg = "Bad Gateway. Invalid response from upstream server."
+        elif 500 <= request.status_code <= 599:
+            err_msg = f"{request.status_code}: Internal Server Error"
             if self.fail_on_error:
                 raise ServerError(err_msg)
             else:
@@ -101,14 +101,6 @@ class Connection:
                     error = Error(request.json(), request.status_code)
                 except JSONDecodeError:
                     error = Error(response=err_msg, is_json=False, status_code=request.status_code)
-                self.last_error = error
-                return False
-
-        elif 500 <= request.status_code <= 599:
-            if self.fail_on_error:
-                raise ServerError(request.json())
-            else:
-                error = Error(request.json(), request.status_code)
                 self.last_error = error
                 return False
 
