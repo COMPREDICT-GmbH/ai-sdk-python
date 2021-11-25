@@ -99,7 +99,7 @@ class Connection:
             except JSONDecodeError:
                 err_msg = "Internal Server Error"
                 is_json = False
-            
+
             if self.fail_on_error:
                 raise ServerError(f"{request.status_code}: {err_msg}")
             else:
