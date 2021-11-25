@@ -93,14 +93,17 @@ class Connection:
                 return False
 
         elif 500 <= request.status_code <= 599:
-            err_msg = f"{request.status_code}: Internal Server Error"
+            try:
+                err_msg = request.json()
+                is_json = True
+            except JSONDecodeError:
+                err_msg = "Internal Server Error"
+                is_json = False
+            
             if self.fail_on_error:
-                raise ServerError(err_msg)
+                raise ServerError(f"{request.status_code}: {err_msg}")
             else:
-                try:
-                    error = Error(request.json(), request.status_code)
-                except JSONDecodeError:
-                    error = Error(response=err_msg, is_json=False, status_code=request.status_code)
+                error = Error(err_msg, status_code=request.status_code, is_json=is_json)
                 self.last_error = error
                 return False
 
