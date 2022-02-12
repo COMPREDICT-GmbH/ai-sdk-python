@@ -4,6 +4,7 @@ import requests
 
 from compredict.exceptions import ClientError, ServerError
 from compredict.exceptions import Error
+from compredict.utils import extract_error_message
 
 
 class Connection:
@@ -96,8 +97,8 @@ class Connection:
             try:
                 err_msg = request.json()
                 is_json = True
-            except JSONDecodeError:
-                err_msg = "Internal Server Error"
+            except ValueError:
+                err_msg = extract_error_message(request.text) if request.text else "Internal Server Error"
                 is_json = False
 
             if self.fail_on_error:
