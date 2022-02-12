@@ -11,9 +11,10 @@ from pandas import DataFrame
 from pandas.io.common import get_handle
 
 from compredict.connection import Connection
-from compredict.exceptions import ClientError, Error
+from compredict.exceptions import ClientError, Error, ServerError
 from compredict.resources import resources
 from compredict.singleton import Singleton
+from compredict.utils import adjust_file_name_to_content_type
 
 CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
@@ -258,12 +259,15 @@ class api:
                           compression=compression, version=version)
             if encrypt:
                 self.RSA_encrypt(file)
-            files = {"features": ('features.json', file, file_content_type)}
+            file_name = adjust_file_name_to_content_type(file_content_type)
+            files = {"features": (file_name, file, file_content_type)}
             response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id),
                                             data=params, files=files)
             resource = 'Task' if response is not False and 'job_id' in response else 'Result'
+        except ServerError as e:
+            raise e
         except Exception as e:
-            raise ClientError(e)
+            raise ClientError from e
         finally:
             if file is not None:
                 file.close()
