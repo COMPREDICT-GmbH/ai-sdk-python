@@ -174,7 +174,7 @@ def connection_with_fail_on_true():
 
 @pytest.fixture(scope="session")
 def response_502_with_html():
-    html_file = Path(__file__).resolve().parent / "media/test.html"
+    html_file = Path(__file__).resolve().parent / "media/test.txt"
     response_502_with_html = Response()
     response_502_with_html.status_code = 502
     response_502_with_html._content = html_file.read_bytes()
