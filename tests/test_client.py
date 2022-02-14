@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from compredict.exceptions import ClientError
+from compredict.exceptions import ClientError, ServerError
 from compredict.resources import Task, Algorithm, Version
 
 
@@ -58,7 +58,7 @@ def test_run_algorithm(api_client, mocker, response_200):
     assert response.result == "some result"
 
 
-def test_run_algorithm_with_client_error(mocker, api_client, response_400):
+def test_run_algorithm_with_client_error(mocker, api_client):
     algorithm_id = "id"
     data = {"data": "some_data"}
     callback_url = ["1callback", "2callback", "3callback"]
@@ -68,6 +68,15 @@ def test_run_algorithm_with_client_error(mocker, api_client, response_400):
     with pytest.raises(ClientError):
         api_client.run_algorithm(algorithm_id=algorithm_id, data=data, callback_url=callback_url,
                                  callback_param=callback_param)
+
+
+def test_run_algorithm_with_server_error(mocker, api_client):
+    algorithm_id = "id"
+    data = {"data": "some_data"}
+    mocker.patch('compredict.connection.Connection._Connection__handle_response', side_effect=ServerError)
+
+    with pytest.raises(ServerError):
+        api_client.run_algorithm(algorithm_id=algorithm_id, data=data)
 
 
 def test_map_resource_with_error_raised(api_client):

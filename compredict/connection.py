@@ -1,10 +1,10 @@
-from json import JSONDecodeError
 from tempfile import NamedTemporaryFile
 
 import requests
 
 from compredict.exceptions import ClientError, ServerError
 from compredict.exceptions import Error
+from compredict.utils import extract_error_message
 
 
 class Connection:
@@ -19,7 +19,7 @@ class Connection:
         self.url = url
         self.last_error = False
         self.fail_on_error = False
-        self.ssl = False
+        self.ssl = True
         self.response = None
         self.headers = dict(Accept='application/json')
         self.last_request = None
@@ -50,7 +50,7 @@ class Connection:
                 del self.headers['Content-Type']
         else:
             self.headers['Content-Type'] = 'application/json'
-        self.last_request = requests.post(address, files=files, data=data, headers=self.headers)
+        self.last_request = requests.post(address, files=files, data=data, headers=self.headers, verify=self.ssl)
         return self.__handle_response(self.last_request)
 
     def GET(self, endpoint):
@@ -62,7 +62,7 @@ class Connection:
         """
         address = self.url + endpoint
         self.headers['Content-Type'] = 'application/json'
-        self.last_request = requests.get(address, None, headers=self.headers)
+        self.last_request = requests.get(address, None, headers=self.headers, verify=self.ssl)
         return self.__handle_response(self.last_request)
 
     def DELETE(self, endpoint):
@@ -74,7 +74,7 @@ class Connection:
         """
         address = self.url + endpoint
         self.headers['Content-Type'] = 'application/json'
-        self.last_request = requests.delete(address, None, headers=self.headers)
+        self.last_request = requests.delete(address, None, headers=self.headers, verify=self.ssl)
         return self.__handle_response(self.last_request)
 
     def __handle_response(self, request):
@@ -84,6 +84,7 @@ class Connection:
         :param request: the request made to the URL.
         :return: JSON if request is correct otherwise false.
         """
+
         if 400 <= request.status_code <= 499:
             if self.fail_on_error:
                 raise ClientError(request.json())
@@ -96,8 +97,8 @@ class Connection:
             try:
                 err_msg = request.json()
                 is_json = True
-            except JSONDecodeError:
-                err_msg = "Internal Server Error"
+            except ValueError:
+                err_msg = extract_error_message(request.text) if request.text else "Internal Server Error"
                 is_json = False
 
             if self.fail_on_error:
