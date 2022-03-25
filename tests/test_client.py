@@ -250,3 +250,16 @@ def test_cancel_task(api_client, mocker, response_202_cancelled_task):
     mocker.patch('requests.delete', return_value=response_202_cancelled_task)
     cancelled_task = api_client.cancel_task(task_id)
     assert isinstance(cancelled_task, Task)
+
+
+def test_printing_error(mocker, api_client):
+    algorithm_id = "id"
+    data = {"data": "some_data"}
+    mocker.patch('compredict.connection.Connection._Connection__handle_response',
+                 side_effect=ServerError("This is error that is going to be printed"))
+
+    try:
+        api_client.run_algorithm(algorithm_id=algorithm_id, data=data)
+    except ServerError as e:
+        print(e)
+        assert repr(e) == "This is error that is going to be printed"
