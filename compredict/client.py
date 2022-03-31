@@ -267,7 +267,7 @@ class api:
         except ServerError as e:
             raise e
         except Exception as e:
-            raise ClientError from e
+            raise e
         finally:
             if file is not None:
                 file.close()
