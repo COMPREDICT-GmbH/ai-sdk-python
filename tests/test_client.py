@@ -58,16 +58,26 @@ def test_run_algorithm(api_client, mocker, response_200):
     assert response.result == "some result"
 
 
-def test_run_algorithm_with_client_error(mocker, api_client):
+def test_run_algorithm_with_type_error(mocker, api_client):
     algorithm_id = "id"
     data = {"data": "some_data"}
     callback_url = ["1callback", "2callback", "3callback"]
     callback_param = [{1: "first"}, {2: "second"}]
     mocker.patch('builtins.dict', side_effect=AttributeError)
 
-    with pytest.raises(ClientError):
+    with pytest.raises(TypeError):
         api_client.run_algorithm(algorithm_id=algorithm_id, data=data, callback_url=callback_url,
                                  callback_param=callback_param)
+
+
+def test_run_algorithm_with_client_error(mocker, api_client, response_400):
+    api_client.connection.fail_on_error = True
+    algorithm_id = "algorithm-slug"
+    data = {"data": "some_data"}
+    mocker.patch('requests.post', return_value=response_400)
+
+    with pytest.raises(ClientError):
+        api_client.run_algorithm(algorithm_id=algorithm_id, data=data)
 
 
 def test_run_algorithm_with_server_error(mocker, api_client):

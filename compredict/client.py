@@ -11,7 +11,7 @@ from pandas import DataFrame
 from pandas.io.common import get_handle
 
 from compredict.connection import Connection
-from compredict.exceptions import ClientError, Error, ServerError
+from compredict.exceptions import ClientError, Error
 from compredict.resources import resources
 from compredict.singleton import Singleton
 from compredict.utils import adjust_file_name_to_content_type
@@ -264,10 +264,8 @@ class api:
             response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id),
                                             data=params, files=files)
             resource = 'Task' if response is not False and 'job_id' in response else 'Result'
-        except ServerError as e:
-            raise e
         except Exception as e:
-            raise ClientError from e
+            raise e
         finally:
             if file is not None:
                 file.close()
