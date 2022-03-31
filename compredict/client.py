@@ -264,8 +264,6 @@ class api:
             response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id),
                                             data=params, files=files)
             resource = 'Task' if response is not False and 'job_id' in response else 'Result'
-        except ServerError as e:
-            raise e
         except Exception as e:
             raise e
         finally:
