@@ -306,10 +306,8 @@ class api:
             files = {"features": (file_name, file, file_content_type)}
             response = self.connection.POST('/algorithms/{}/fit'.format(algorithm_id),
                                             data=params, files=files)
-        except ServerError as e:
-            raise e
         except Exception as e:
-            raise ClientError from e
+            raise e
         finally:
             if file is not None:
                 file.close()
