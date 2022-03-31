@@ -273,6 +273,50 @@ class api:
                     remove(file.name)
         return self.__map_resource(resource, response)
 
+    def train_algorithm(self,
+                        algorithm_id: str,
+                        data: Union[str, DataFrame, dict],
+                        version: Optional[str] = None,
+                        export_new_version: Optional[bool] = None,
+                        file_content_type: Optional[str] = None,
+                        compression: Optional[str] = None) -> Union[resources.Task, bool]:
+        """
+        Train fit algorithm with the passed data.
+
+        :param algorithm_id: String identifier of the algorithm.
+        :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
+        :param version: Choose the version of the algorithm you would like to call. Default is latest version.
+        :param export_new_version: The trained model will be exported to a new version if True.
+               Otherwise, the requested version will be updated. If None, then the model’s default behavior
+               will be executed. Default behaviour is controlled by the algorithm’s author.
+        :param file_content_type: Type of data to be sent to AI Core.
+        :param compression: The compressed type of the data, the compression supported is what pandas supports
+               for the file content type you will send. Based on data type:
+               - if data is pandas or dict, then the compression is done by the function.
+               - if string or path, then it describes the compression of the file sent.
+        :return: Task (since all processing fit algorithms always end up in queue).
+        """
+
+        file, to_remove = None, False
+        try:
+            file, file_content_type, to_remove = self.__process_data(data, file_content_type,
+                                                                     compression=compression)
+            params = dict(export_new_version=export_new_version, compression=compression, version=version)
+            file_name = adjust_file_name_to_content_type(file_content_type)
+            files = {"features": (file_name, file, file_content_type)}
+            response = self.connection.POST('/algorithms/{}/fit'.format(algorithm_id),
+                                            data=params, files=files)
+        except ServerError as e:
+            raise e
+        except Exception as e:
+            raise ClientError from e
+        finally:
+            if file is not None:
+                file.close()
+                if to_remove and exists(file.name):
+                    remove(file.name)
+        return self.__map_resource("Task", response)
+
     @staticmethod
     def __process_evaluate(evaluate):
         """
