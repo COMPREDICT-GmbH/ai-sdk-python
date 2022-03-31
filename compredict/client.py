@@ -11,7 +11,7 @@ from pandas import DataFrame
 from pandas.io.common import get_handle
 
 from compredict.connection import Connection
-from compredict.exceptions import ClientError, Error, ServerError
+from compredict.exceptions import ClientError, Error
 from compredict.resources import resources
 from compredict.singleton import Singleton
 from compredict.utils import adjust_file_name_to_content_type
