@@ -263,3 +263,31 @@ def test_printing_error(mocker, api_client):
     except ServerError as e:
         print(e)
         assert repr(e) == "This is error that is going to be printed"
+
+
+def test_train_algorithm(mocker, api_client, response_200_with_job_id):
+    algorithm_id = "algorithm-slug"
+    data = {"data": "some_data"}
+    mocker.patch('requests.post', return_value=response_200_with_job_id)
+    result_task = api_client.train_algorithm(algorithm_id, data)
+    assert isinstance(result_task, Task)
+    assert result_task.job_id == "s1o2m3e4-jobid"
+
+
+def test_train_algorithm_with_client_error(mocker, api_client, response_400):
+    api_client.connection.fail_on_error = True
+    algorithm_id = "trainable-algorithm"
+    data = {"data": "some_data"}
+    mocker.patch('requests.post', return_value=response_400)
+
+    with pytest.raises(ClientError):
+        api_client.train_algorithm(algorithm_id=algorithm_id, data=data, export_new_version=True)
+
+
+def test_train_algorithm_with_server_error(mocker, api_client):
+    algorithm_id = "trainable-algorithm"
+    data = {"data": "some_data"}
+    mocker.patch('compredict.connection.Connection._Connection__handle_response', side_effect=ServerError)
+
+    with pytest.raises(ServerError):
+        api_client.train_algorithm(algorithm_id=algorithm_id, data=data, export_new_version=True)

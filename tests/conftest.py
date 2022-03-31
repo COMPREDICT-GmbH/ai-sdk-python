@@ -165,6 +165,17 @@ def response_200_with_algorithms(algorithm):
     return response_200_with_algorithms
 
 
+@pytest.fixture(scope="session")
+def response_200_with_job_id():
+    response_200_with_job_id = Response()
+    response_200_with_job_id.status_code = 200
+    content = {"job_id": "s1o2m3e4-jobid"}
+    response_200_with_job_id._content = json.dumps(content).encode('utf-8')
+    response_200_with_job_id.headers['Content-Type'] = 'application/json'
+    response_200_with_job_id.url = 'https://core.compredict.ai/api/v1/algorithms/example-slug/fit'
+    return response_200_with_job_id
+
+
 @pytest.fixture(scope='session')
 def connection_with_fail_on_true():
     connection_with_fail_on_true = Connection(url="https://core.compredict.ai/api/")
