@@ -94,6 +94,12 @@ class Result(BaseResource):
         super(Result, self).__init__(**kwargs)
 
 
+class Monitor(BaseResource):
+
+    def __init__(self, **kwargs):
+        super(Monitor, self).__init__(**kwargs)
+
+
 class Task(BaseResource):
     STATUS_PENDING = "Pending"
     STATUS_PROGRESS = "In Progress"
@@ -105,7 +111,7 @@ class Task(BaseResource):
         self.success = self.success if self.success is not None else None
         self.error = self.error if self.error is not None else None
         self.is_encrypted = self.is_encrypted if self.is_encrypted is not None else False
-        self._set_results(self.predictions, self.evaluations)
+        self._set_results(self.predictions, self.evaluations, self.monitors)
 
     def update(self):
         task = self.client.get_task_results(self.job_id)
@@ -118,14 +124,18 @@ class Task(BaseResource):
         task = self.client.cancel_task(self.job_id)
         self.__dict__.update(task.__dict__)
 
-    def _set_results(self, predictions: dict, evaluations: dict):
+    def _set_results(self, predictions: dict, evaluations: dict, monitors: dict):
         self.predictions = None
         self.evaluations = None
+        self.monitors = None
         if self.status == Task.STATUS_FINISHED and self.success is True:
             if self.is_encrypted:
                 self.predictions = self.client.RSA_decrypt(predictions)
                 if evaluations is not None:
                     self.evaluations = self.client.RSA_decrypt(evaluations)
+                if monitors is not None:
+                    self.monitors = self.client.RSA_decrypt(monitors)
             else:
                 self.predictions = predictions
                 self.evaluations = evaluations
+                self.monitors = monitors
