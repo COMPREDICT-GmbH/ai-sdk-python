@@ -256,7 +256,7 @@ class api:
             callback_url = self._set_callback_urls(
                 callback_url) if callback_url is not None else self.callback_url
 
-            params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt, monitors=monitor,
+            params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt, monitor=monitor,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
             if encrypt:
@@ -306,7 +306,7 @@ class api:
             file, file_content_type, to_remove = self.__process_data(data, file_content_type,
                                                                      compression=compression)
             params = dict(export_new_version=export_new_version, compression=compression, version=version,
-                          monitors=monitor)
+                          monitor=monitor)
             file_name = adjust_file_name_to_content_type(file_content_type)
             files = {"features": (file_name, file, file_content_type)}
             response = self.connection.POST('/algorithms/{}/fit'.format(algorithm_id),
