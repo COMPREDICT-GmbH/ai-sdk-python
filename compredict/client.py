@@ -113,7 +113,7 @@ class api:
         try:
             model_class = getattr(resources, resource)
             instance = model_class(**a_object)
-        except(AttributeError, ModuleNotFoundError):
+        except (AttributeError, ModuleNotFoundError):
             raise ImportError("Resource {} was not found".format(resource))
         return instance
 
