@@ -1,10 +1,14 @@
 COMPREDICT's AI CORE API Client
 ===============================
 
-Python client for connecting to the COMPREDICT V1 REST API.
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/COMPREDICT-GmbH/ai-sdk-python/ai-sdk-python)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/COMPREDICT-GmbH/ai-sdk-python)
+[![PyPI](https://img.shields.io/pypi/v/COMPREDICT-AI-SDK?color=orange)](https://pypi.org/project/COMPREDICT-AI-SDK/)
 
-To find out more, visit COMPREDICT website:
-https://compredict.ai/ai-core/
+**Python client for connecting to the COMPREDICT V1 REST API.**
+
+**To find out more, please visit** **[COMPREDICT website](https://compredict.ai/ai-core/)**.
+
 
 Requirements
 ------------
