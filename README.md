@@ -48,7 +48,7 @@ Accessing Algorithms (GET)
 To list all the algorithms in a collection:
 
 ~~~python
-algorithms = compredict_client.getAlgorithms()
+algorithms = compredict_client.get_algorithms()
 
 for algorithm in algorithms:
     print(algorithm.name)
@@ -58,7 +58,7 @@ for algorithm in algorithms:
 To access a single algorithm:
 
 ~~~python
-algorithm = compredict_client.getAlgorithm('ecolife')
+algorithm = compredict_client.get_algorithm('ecolife')
 
 print(algorithm.name)
 print(algorithm.description)
@@ -120,22 +120,23 @@ X_test = dict(
     feature_2=[2, 3, 4, 5]
 )
 
-algorithm = compredict_client.getAlgorithm('algorithm_id')
+algorithm = compredict_client.get_algorithm('algorithm_id')
 result = algorithm.run(X_test)
 ~~~
 
-You can identify when the algorithm dispatches the processing to queue
-or send the results instantly by checking:
+You can identify when the algorithm dispatches the processing of task to queue
+or sends the results instantly by checking:
 
 ~~~python
 >>> print(algorithm.results)
-The request will be sent to queue for processing
+
+"The request will be sent to queue for processing"
 ~~~
 
 or dynamically:
 
 ~~~python
-results = algorithm.predict(X_test, evaluate=True)
+results = algorithm.run(X_test, evaluate=True)
 
 if isinstance(results, compredict.resources.Task):
     print(results.job_id)
@@ -164,14 +165,14 @@ X_test = pd.DataFrame(dict(
     feature_2=[2, 3, 4, 5]
 ))
 
-algorithm = compredict_client.getAlgorithm('algorithm_id')
+algorithm = compredict_client.get_algorithm('algorithm_id')
 result = algorithm.run(X_test, file_content_type="application/parquet")
 ~~~
 
 **Example of sending data from parquet file:**
 
 ~~~python
-algorithm = compredict_client.getAlgorithm('algorithm_id')
+algorithm = compredict_client.get_algorithm('algorithm_id')
 result = algorithm.run("/path/to/file.parquet", file_content_type="application/parquet")
 ~~~
 
@@ -190,7 +191,7 @@ When running the algorithm, with `evaluate = True`, then the algorithm will be e
 ~~~python
 evaluate = {"rainflow-counting": {"hysteresis": 0.2, "N":100000}} # evaluate name and its params
 
-result = algorithm.predict(X_test, evaluate=evaluate)
+result = algorithm.run(X_test, evaluate=evaluate)
 ~~~
 
 Data Privacy
@@ -208,7 +209,7 @@ Here is an example:
 # First, you should provide public key in COMPREDICT's dashboard.
 
 # Second, Call predict and set encrypt as True
-results = algorithm.predict(X_test, evaluate=True, encrypt=True)
+results = algorithm.run(X_test, evaluate=True, encrypt=True)
 
 if isinstance(results, resources.Task):
     if results.status is results.STATUS_FINISHED:
@@ -230,7 +231,7 @@ This would most often be when you tried to save some data that did not validate
 correctly.
 
 ~~~python
-algorithms = compredict_client.getAlgorithms()
+algorithms = compredict_client.get_algorithms()
 
 if not algorithms:
     error = compredict_client.last_error
@@ -246,10 +247,10 @@ need to catch and handle the exception in code yourself. The exception throwing
 behavior of the client is controlled using the failOnError method:
 
 ~~~python
-compredict_client.failOnError()
+compredict_client.fail_on_error()
 
 try:
-    orders = compredict_client.getAlgorithms()
+    orders = compredict_client.get_algorithms()
 raise compredict.exceptions.CompredictError as e:
     ...
 ~~~
@@ -268,5 +269,5 @@ certificate is being used, you can turn off this behavior using the verifyPeer
 switch, which will disable certificate checking on all subsequent requests:
 
 ~~~python
-compredict_client.verifyPeer(false)
+compredict_client.verify_peer(False)
 ~~~
