@@ -77,13 +77,14 @@ Any algorithm a user has access to is different, it has different:
 - Output data.
 - Evaluation set.
 - Result instance.
+- Monitoring Tools.
 - Accepted file format.
 
 The `run` function has the following signature: 
 
 ~~~python
 Task|Result = algorithm.run(data, evaluate=True, encrypt=False, callback_url=None, 
-                            callback_param=None, file_content_type=None)
+                            callback_param=None, file_content_type=None, monitor=True)
 ~~~
 
 - `data`: data to be processed by the algorithm, it can be:
@@ -98,11 +99,13 @@ Task|Result = algorithm.run(data, evaluate=True, encrypt=False, callback_url=Non
     - `application/json`: for dict data.
     - `text/csv`: when passing pandas DataFrame.
     - `application/parquet`: when passing pandas's DataFrame.
+- `monitor`: boolean indicating if the output results of the model should be monitored or not. By default it is set 
+  to True.
     
 Depending on the algorithm's computation requirement `algorithm.result`, the result can be:
 
 - **compredict.resources.Task**: holds a job id of the task that the user can query later to get the results.
-- **compredict.resources.Result**: contains the result of the algorithm + evaluation
+- **compredict.resources.Result**: contains the result of the algorithm + evaluation + monitors
 
 **Create list of urls for callbacks**
 
