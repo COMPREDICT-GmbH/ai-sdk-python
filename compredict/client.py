@@ -137,7 +137,7 @@ class api:
             for obj in objects:
                 model_class = getattr(resources, resource)
                 instances.append(model_class(**obj))
-        except(AttributeError, ModuleNotFoundError):
+        except (AttributeError, ModuleNotFoundError):
             raise ImportError("Resource {} was not found".format(resource))
         return instances
 
