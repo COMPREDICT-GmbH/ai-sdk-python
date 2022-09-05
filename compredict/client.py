@@ -220,7 +220,8 @@ class api:
                       callback_url: Optional[Union[str, List[str]]] = None,
                       callback_param: Optional[Union[dict, List[dict]]] = None,
                       file_content_type: Optional[str] = None,
-                      compression: Optional[str] = None) -> Union[resources.Task, resources.Result, bool]:
+                      compression: Optional[str] = None,
+                      monitor: bool = True) -> Union[resources.Task, resources.Result, bool]:
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
@@ -240,6 +241,7 @@ class api:
         for the file content type you will send. Compression is only supported if encrypt is false. Based on data type:
             - if data is pandas or dict, then the compression is done by the function.
             - if string or path, then it describes the compression of the file sent.
+        :param monitor: Boolean to monitor the output results of the model or not.
         :return: Prediction if results are return instantly or Task otherwise.
         """
         if encrypt is True and self.rsa_key is None:
@@ -254,7 +256,7 @@ class api:
             callback_url = self._set_callback_urls(
                 callback_url) if callback_url is not None else self.callback_url
 
-            params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt,
+            params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt, monitor=monitor,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
             if encrypt:
@@ -279,7 +281,8 @@ class api:
                         version: Optional[str] = None,
                         export_new_version: Optional[bool] = None,
                         file_content_type: Optional[str] = None,
-                        compression: Optional[str] = None) -> Union[resources.Task, bool]:
+                        compression: Optional[str] = None,
+                        monitor: bool = True) -> Union[resources.Task, bool]:
         """
         Train fit algorithm with the passed data.
 
@@ -294,6 +297,7 @@ class api:
                for the file content type you will send. Based on data type:
                - if data is pandas or dict, then the compression is done by the function.
                - if string or path, then it describes the compression of the file sent.
+        :param monitor: Boolean to monitor the output results of the model or not
         :return: Task (since all processing fit algorithms always end up in queue).
         """
 
@@ -301,7 +305,8 @@ class api:
         try:
             file, file_content_type, to_remove = self.__process_data(data, file_content_type,
                                                                      compression=compression)
-            params = dict(export_new_version=export_new_version, compression=compression, version=version)
+            params = dict(export_new_version=export_new_version, compression=compression, version=version,
+                          monitor=monitor)
             file_name = adjust_file_name_to_content_type(file_content_type)
             files = {"features": (file_name, file, file_content_type)}
             response = self.connection.POST('/algorithms/{}/fit'.format(algorithm_id),
