@@ -4,7 +4,7 @@ import requests
 
 from compredict.exceptions import ClientError, ServerError
 from compredict.exceptions import Error
-from compredict.utils import extract_error_message
+from compredict.utils.utils import extract_error_message
 
 
 class Connection:
@@ -24,7 +24,7 @@ class Connection:
         self.headers = dict(Accept='application/json')
         self.last_request = None
         if token is not None:
-            self.headers['Authorization'] = 'Token ' + token
+            self.headers['Authorization'] = 'Bearer ' + token
 
     def set_token(self, token):
         """
@@ -33,7 +33,7 @@ class Connection:
         :param token: String API Key
         :return: None
         """
-        self.headers['Authorization'] = 'Token ' + token
+        self.headers['Authorization'] = 'Bearer ' + token
 
     def POST(self, endpoint, data, files=None):
         """
