@@ -15,7 +15,7 @@ Requirements
 
 **To connect to the API with basic auth you need the following:**
 
-- API Key taken from COMPREDICT's User Dashboard
+- Token generated with your AI Core username and password
 - (Optional) Callback url to send the results
 - (Optional) Private key for decrypting the messages.
 
@@ -37,14 +37,119 @@ or
 Configuration
 -------------
 
-### Basic Auth
+### Basic Authentication
+
+AI Core requires from the user, to authenticate with token, generated with user's AI CORE username and password.
+
+**There are two ways in which user can generate needed token:**
+
+1. **Generate token directly with utility function** (this approach requires user to pass url to AICore as well):
+~~~python
+from compredict.utils.authentications import generate_token
+
+# user_username and user_password in this example, are of course credentials personal to each user
+response = generate_token(url="https://core.compredict.ai/api/v2", username=user_username, 
+                                     password=user_password)
+response_json = response.json()
+
+# access tokens or errors encountered
+if response.status_code == 200:
+    token = response_json['access']
+    token_refresh = response_json['refresh']
+    print(token)
+    print(token_refresh)
+elif response.status_code == 400:
+    print(response_json['errors'])
+else:
+    print(response_json['error'])
+~~~
+
+Now, you can instantiate Client with freshly generated token.
 ~~~python
 import compredict
 
-compredict_client = compredict.client.api.get_instance(token=token, callback_url=None, ppk=None, passphrase="")
+compredict_client = compredict.client.api.get_instance(token=your_new_generated_token_here)
 ~~~
 
-We highly advice that the SDK information are stored as environment variables.
+2. **Instantiate Client with your AICore username and password.** In this case, token, as well as refresh_token, will be 
+   generated and assigned automatically to the Client. After this operation, you don't need to reinstantiate Client 
+   with generated token. You should be able to directly call all Client methods as you like.
+~~~python
+import compredict
+
+compredict_client = compredict.client.api.get_instance(username=username, password=password, callback_url=None, 
+                                                       ppk=None, passphrase="")
+~~~
+
+### Accessing new access token with token refresh
+Token refresh is used for generating new access token (mainly in case if previous access token is expired).
+
+**New access token can be generated with token refresh in two ways:**
+
+**1. By calling utility function:**
+~~~python
+from compredict.utils.authentications import refresh_token
+
+response = refresh_token(url="https://core.compredict.ai/api/v2", token=token_refresh)
+response_json = response.json()
+
+# access token or errors encountered
+if response.status_code == 200:
+    token = response_json['access']
+    print(token)
+elif response.status_code == 400:
+    print(response_json['errors'])
+else:
+    print(response_json['error'])
+~~~
+Then, you can instantiate Client with new access token.
+
+**2. By calling Client method:**
+
+If you generated token with passing to the Client your username and password, you don't need to pass
+your token_refresh to refresh_token() Client method, since your token_refresh is already stored inside the Client.
+~~~python
+# look above for the explanation in which cases token_to_refresh is not required
+token = compredict_client.refresh_token(token_to_refresh)
+~~~
+
+### Check token validity
+
+If user would like for Client to automatically check token validity while instantiating Client, **validate** needs to 
+enabled.
+~~~python
+import compredict
+
+compredict_client = compredict.client.api.get_instance(token=your_new_generated_token_here, validate=True)
+~~~
+
+**User can manually verify token validity in two ways:**
+
+**1. By calling utility function:**
+~~~python
+from compredict.utils.authentications import verify_token
+
+response = verify_token(url="https://core.compredict.ai/api/v2", token=token_to_verify)
+
+# check validity
+if response.status_code == 200:
+    print(True)
+else:
+    print(False)
+~~~
+
+**2. By calling Client method:**
+
+If you generated token with passing to the Client your username and password, you don't need to pass
+your token to verify_token() Client method, since your token is already stored inside the Client.
+~~~python
+# look above for the explanation in which cases token_to_verify is not required
+validity = compredict_client.verify_token(token_to_verify)
+print(validity)
+~~~
+In case of valid token, response will be empty with status_code 200.
+
+**We highly advice that the SDK information are stored as environment variables.**
 
 Accessing Algorithms (GET)
 --------------------------
