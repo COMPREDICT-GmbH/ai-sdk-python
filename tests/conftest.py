@@ -27,8 +27,7 @@ def api_client(rsa_key):
 
 @pytest.fixture(scope='session')
 def connection():
-    # connection = Connection(url="https://core.compredict.ai/api/")
-    connection = Connection(url="http://localhost:/api/")
+    connection = Connection(url="https://core.compredict.ai/api/")
     return connection
 
 

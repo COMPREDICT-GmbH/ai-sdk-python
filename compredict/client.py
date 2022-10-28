@@ -80,7 +80,6 @@ class api:
         with open(ppk) as f:
             self.rsa_key = RSA.importKey(f.read(), passphrase=passphrase)
             self.rsa_key = PKCS1_OAEP.new(self.rsa_key)
-        pass
 
     def verify_peer(self, option: str):
         """
@@ -485,7 +484,7 @@ class api:
         :rtype: binray
         """
         if self.rsa_key is None:
-            raise Exception("Path to private key should be provided to decrypt the response.")
+            raise ClientError("Path to private key should be provided to decrypt the response.")
 
         is_file = hasattr(data, 'read') and hasattr(data, 'write')
         msg = data if not is_file else data.read()
@@ -530,7 +529,7 @@ class api:
         :rtype: string
         """
         if self.rsa_key is None:
-            raise Exception("Path to private key should be provided to decrypt the response.")
+            raise ClientError("Path to private key should be provided to decrypt the response.")
 
         encrypted_msg = base64.b64decode(encrypted_msg)
 
