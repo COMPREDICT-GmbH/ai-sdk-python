@@ -1,6 +1,6 @@
 import pytest
 
-from compredict.utils import adjust_file_name_to_content_type, extract_error_message
+from compredict.utils.utils import adjust_file_name_to_content_type, extract_error_message
 
 
 @pytest.mark.parametrize(
