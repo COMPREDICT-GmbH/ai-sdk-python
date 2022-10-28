@@ -1,6 +1,8 @@
 from tempfile import NamedTemporaryFile
+from typing import Union
 
 import requests
+from requests import Response
 
 from compredict.exceptions import ClientError, ServerError
 from compredict.exceptions import Error
@@ -51,7 +53,7 @@ class Connection:
         else:
             self.headers['Content-Type'] = 'application/json'
         self.last_request = requests.post(address, files=files, data=data, headers=self.headers, verify=self.ssl)
-        return self.__handle_response(self.last_request)
+        return self.handle_response(self.last_request, self.fail_on_error)
 
     def GET(self, endpoint):
         """
@@ -63,7 +65,7 @@ class Connection:
         address = self.url + endpoint
         self.headers['Content-Type'] = 'application/json'
         self.last_request = requests.get(address, None, headers=self.headers, verify=self.ssl)
-        return self.__handle_response(self.last_request)
+        return self.handle_response(self.last_request, self.fail_on_error)
 
     def DELETE(self, endpoint):
         """
@@ -75,45 +77,46 @@ class Connection:
         address = self.url + endpoint
         self.headers['Content-Type'] = 'application/json'
         self.last_request = requests.delete(address, None, headers=self.headers, verify=self.ssl)
-        return self.__handle_response(self.last_request)
+        return self.handle_response(self.last_request, self.fail_on_error)
 
-    def __handle_response(self, request):
+    def handle_response(self, response: Response, fail_on_error: bool) -> Union[dict, bool]:
         """
-        Handles the requests based on the status code. In addition it raises exception if fail_on_error is True.
+        Handles responses based on the status code. In addition it raises exception if fail_on_error is True.
 
-        :param request: the request made to the URL.
-        :return: JSON if request is correct otherwise false.
+        :param response: response from AI Core API
+        :param fail_on_error: indicated whether errors should be raised or not
+        :return: JSON if request is correct otherwise false
         """
 
-        if 400 <= request.status_code <= 499:
-            if self.fail_on_error:
-                raise ClientError(request.json())
+        if 400 <= response.status_code <= 499:
+            if fail_on_error:
+                raise ClientError(response.json())
             else:
-                error = Error(request.json(), request.status_code)
+                error = Error(response.json(), response.status_code)
                 self.last_error = error
                 return False
 
-        elif 500 <= request.status_code <= 599:
+        elif 500 <= response.status_code <= 599:
             try:
-                err_msg = request.json()
+                err_msg = response.json()
                 is_json = True
             except ValueError:
-                err_msg = extract_error_message(request.text) if request.text else "Internal Server Error"
+                err_msg = extract_error_message(response.text) if response.text else "Internal Server Error"
                 is_json = False
 
-            if self.fail_on_error:
-                raise ServerError(f"{request.status_code}: {err_msg}")
+            if fail_on_error:
+                raise ServerError(f"{response.status_code}: {err_msg}")
             else:
-                error = Error(err_msg, status_code=request.status_code, is_json=is_json)
+                error = Error(err_msg, status_code=response.status_code, is_json=is_json)
                 self.last_error = error
                 return False
 
-        if '/template' in request.url or '/graph' in request.url:
-            ext = '.png' if request.headers['Content-Type'] == 'image/png' else '.json'
+        if '/template' in response.url or '/graph' in response.url:
+            ext = '.png' if response.headers['Content-Type'] == 'image/png' else '.json'
             response = NamedTemporaryFile(suffix=ext)
-            response.write(request.content)
+            response.write(response.content)
             response.seek(0)
         else:
-            response = request.json()
+            response = response.json()
 
         return response
