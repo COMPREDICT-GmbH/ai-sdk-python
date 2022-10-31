@@ -307,10 +307,10 @@ def test_generate_token(api_client, mocker, response_200_with_tokens_generated):
     mocker.patch('requests.post', return_value=response_200_with_tokens_generated)
     api_client.generate_token(username="someuser", password="andpassword")
     assert api_client.token == "sometokenvalue"
-    assert api_client.token_refresh == "somerefreshtokenvalue"
+    assert api_client.refresh_token == "somerefreshtokenvalue"
 
 
-def test_generete_token_with_error(api_client, mocker, response_400_with_credentials_error):
+def test_generate_token_with_error(api_client, mocker, response_400_with_credentials_error):
     mocker.patch('requests.post', return_value=response_400_with_credentials_error)
     with pytest.raises(ClientError) as excinfo:
         api_client.generate_token(username="user", password="somepass")
@@ -319,14 +319,14 @@ def test_generete_token_with_error(api_client, mocker, response_400_with_credent
 
 def test_refresh_token(api_client, mocker, response_200_with_refreshed_token):
     mocker.patch('requests.post', return_value=response_200_with_refreshed_token)
-    api_client.refresh_token('refresh_token')
+    api_client.generate_token_from_refresh_token('generate_token_from_refresh_token')
     assert api_client.token == 'refreshedtoken'
 
 
 def test_refresh_token_with_error(api_client, mocker, response_400_with_wrong_refresh_token):
     mocker.patch('requests.post', return_value=response_400_with_wrong_refresh_token)
     with pytest.raises(ClientError) as excinfo:
-        api_client.refresh_token('token_to_refresh')
+        api_client.generate_token_from_refresh_token('token_to_refresh')
     assert 'errors' in str(excinfo.value)
 
 
