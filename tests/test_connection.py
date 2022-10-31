@@ -10,24 +10,24 @@ def test_set_token(connection):
     token = "hahsduasfbfiuyer"
     connection.set_token(token)
 
-    expected_token = 'Token hahsduasfbfiuyer'
+    expected_token = 'Bearer hahsduasfbfiuyer'
 
     assert connection.headers['Authorization'] == expected_token
 
 
 def test_handle_response_with_raising_client_error(connection_with_fail_on_true, response_400):
     with pytest.raises(ClientError):
-        connection_with_fail_on_true._Connection__handle_response(response_400)
+        connection_with_fail_on_true.handle_response(response_400, True)
 
 
 def test_handle_response_with_raising_server_error(connection_with_fail_on_true, response_500):
     with pytest.raises(ServerError):
-        connection_with_fail_on_true._Connection__handle_response(response_500)
+        connection_with_fail_on_true.handle_response(response_500, True)
 
 
 def test_handle_response_with_last_error(connection, response_400, response_500):
-    response_400 = connection._Connection__handle_response(response_400)
-    response_500 = connection._Connection__handle_response(response_500)
+    response_400 = connection.handle_response(response_400, False)
+    response_500 = connection.handle_response(response_500, False)
 
     assert response_400 is False
     assert response_500 is False
@@ -36,13 +36,13 @@ def test_handle_response_with_last_error(connection, response_400, response_500)
 def test_handle_response_with_graph(connection, response_200_with_url, mocker):
     mocked_wrapper = mocker.patch('tempfile._TemporaryFileWrapper')
 
-    connection._Connection__handle_response(response_200_with_url)
+    connection.handle_response(response_200_with_url, True)
 
     assert mocked_wrapper.called is True
 
 
 def test_handle_successful_response(connection, response_200):
-    actual_response = connection._Connection__handle_response(response_200)
+    actual_response = connection.handle_response(response_200, False)
     expected_response = {
         "error": "False",
         "result": "some result"
@@ -113,7 +113,7 @@ def test_create_headers_with_auth():
     connection = Connection(url="not/of/much/importance/here",
                             token="1234token1234")
     actual = connection.headers['Authorization']
-    expected = 'Token 1234token1234'
+    expected = 'Bearer 1234token1234'
     assert actual == expected
 
 

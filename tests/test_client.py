@@ -83,7 +83,7 @@ def test_run_algorithm_with_client_error(mocker, api_client, response_400):
 def test_run_algorithm_with_server_error(mocker, api_client):
     algorithm_id = "id"
     data = {"data": "some_data"}
-    mocker.patch('compredict.connection.Connection._Connection__handle_response', side_effect=ServerError)
+    mocker.patch('compredict.connection.Connection.handle_response', side_effect=ServerError)
 
     with pytest.raises(ServerError):
         api_client.run_algorithm(algorithm_id=algorithm_id, data=data)
@@ -265,7 +265,7 @@ def test_cancel_task(api_client, mocker, response_202_cancelled_task):
 def test_printing_error(mocker, api_client):
     algorithm_id = "id"
     data = {"data": "some_data"}
-    mocker.patch('compredict.connection.Connection._Connection__handle_response',
+    mocker.patch('compredict.connection.Connection.handle_response',
                  side_effect=ServerError("This is error that is going to be printed"))
 
     try:
@@ -297,7 +297,46 @@ def test_train_algorithm_with_client_error(mocker, api_client, response_400):
 def test_train_algorithm_with_server_error(mocker, api_client):
     algorithm_id = "trainable-algorithm"
     data = {"data": "some_data"}
-    mocker.patch('compredict.connection.Connection._Connection__handle_response', side_effect=ServerError)
+    mocker.patch('compredict.connection.Connection.handle_response', side_effect=ServerError)
 
     with pytest.raises(ServerError):
         api_client.train_algorithm(algorithm_id=algorithm_id, data=data, export_new_version=True)
+
+
+def test_generate_token(api_client, mocker, response_200_with_tokens_generated):
+    mocker.patch('requests.post', return_value=response_200_with_tokens_generated)
+    api_client.generate_token(username="someuser", password="andpassword")
+    assert api_client.token == "sometokenvalue"
+    assert api_client.refresh_token == "somerefreshtokenvalue"
+
+
+def test_generate_token_with_error(api_client, mocker, response_400_with_credentials_error):
+    mocker.patch('requests.post', return_value=response_400_with_credentials_error)
+    with pytest.raises(ClientError) as excinfo:
+        api_client.generate_token(username="user", password="somepass")
+    assert 'errors' in str(excinfo.value)
+
+
+def test_refresh_token(api_client, mocker, response_200_with_refreshed_token):
+    mocker.patch('requests.post', return_value=response_200_with_refreshed_token)
+    api_client.generate_token_from_refresh_token('generate_token_from_refresh_token')
+    assert api_client.token == 'refreshedtoken'
+
+
+def test_refresh_token_with_error(api_client, mocker, response_400_with_wrong_refresh_token):
+    mocker.patch('requests.post', return_value=response_400_with_wrong_refresh_token)
+    with pytest.raises(ClientError) as excinfo:
+        api_client.generate_token_from_refresh_token('token_to_refresh')
+    assert 'errors' in str(excinfo.value)
+
+
+def test_verify_token(api_client, mocker, response_200_token_verified):
+    mocker.patch('requests.post', return_value=response_200_token_verified)
+    assert api_client.verify_token('sometoken')
+
+
+def test_verify_with_error(api_client, mocker, response_429_throttling_error):
+    mocker.patch('requests.post', return_value=response_429_throttling_error)
+    with pytest.raises(ClientError) as excinfo:
+        api_client.verify_token('someothertoken')
+    assert 'error' in str(excinfo.value)
