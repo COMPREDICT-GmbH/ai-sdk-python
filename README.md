@@ -55,9 +55,9 @@ response_json = response.json()
 # access tokens or errors encountered
 if response.status_code == 200:
     token = response_json['access']
-    token_refresh = response_json['refresh']
+    refresh_token = response_json['refresh']
     print(token)
-    print(token_refresh)
+    print(refresh_token)
 elif response.status_code == 400:
     print(response_json['errors'])
 else:
@@ -82,15 +82,16 @@ compredict_client = compredict.client.api.get_instance(username=username, passwo
 ~~~
 
 ### Accessing new access token with token refresh
-Token refresh is used for generating new access token (mainly in case if previous access token is expired).
+Refresh token is used for generating new access token (mainly in case if previous access token is expired).
 
-**New access token can be generated with token refresh in two ways:**
+**New access token can be generated with refresh token in two ways:**
 
 **1. By calling utility function:**
-~~~python
-from compredict.utils.authentications import refresh_token
 
-response = refresh_token(url="https://core.compredict.ai/api/v2", token=token_refresh)
+~~~python
+from compredict.utils.authentications import generate_token_from_refresh_token
+
+response = generate_token_from_refresh_token(url="https://core.compredict.ai/api/v2", token=refresh_token)
 response_json = response.json()
 
 # access token or errors encountered
@@ -107,10 +108,12 @@ Then, you can instantiate Client with new access token.
 **2. By calling Client method:**
 
 If you generated token with passing to the Client your username and password, you don't need to pass
-your token_refresh to refresh_token() Client method, since your token_refresh is already stored inside the Client.
+your refresh_token to generate_token_from_refresh_token() Client method, since your refresh_token is already stored 
+inside the Client.
+
 ~~~python
 # look above for the explanation in which cases token_to_refresh is not required
-token = compredict_client.refresh_token(token_to_refresh)
+token = compredict_client.generate_token_from_refresh_token(refresh_token)
 ~~~
 
 ### Check token validity
