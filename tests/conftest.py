@@ -12,16 +12,8 @@ from compredict.resources import Task
 
 
 @pytest.fixture(scope='session')
-def rsa_key():
-    generated_key = RSA.generate(1024)
-    rsa_key = PKCS1_OAEP.new(generated_key)
-    return rsa_key
-
-
-@pytest.fixture(scope='session')
-def api_client(rsa_key):
+def api_client():
     api_client = api.get_instance(token='sometoken', validate=False)
-    api_client.rsa_key = rsa_key
     return api_client
 
 
@@ -111,7 +103,6 @@ def result():
     result = {
         'reference': '12jffd',
         'status': "Finished",
-        'is_encrypted': False,
         'results': []
     }
     return result

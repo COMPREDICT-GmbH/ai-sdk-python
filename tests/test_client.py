@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from compredict.exceptions import ClientError, ServerError
@@ -139,29 +137,6 @@ def test_process_data_with_value_error(api_client, data):
 
     with pytest.raises(ValueError):
         api_client._api__process_data(content_type, data)
-
-
-def test_RSA_decrypt_and_encrypt_with_error_raised(api_client):
-    encrypted_key = json.dumps("dsfsdgryertn6435fsdf").encode('utf-8')
-    data = "Some data to be encrypted"
-
-    api_client.rsa_key = None
-
-    with pytest.raises(Exception):
-        api_client.RSA_decrypt(encrypted_key)
-        api_client.RSA_encrypt(data)
-
-
-def test_RSA_encrypt_and_decrypt(api_client, rsa_key):
-    data = "here there is some data to be encrypted"
-
-    api_client.rsa_key = rsa_key
-    result = api_client.RSA_encrypt(data)
-    decrypted_msg = api_client.RSA_decrypt(result)
-
-    assert data != result
-    assert len(result) > len(data)
-    assert data == decrypted_msg
 
 
 def test_build_get_arguments(api_client):
