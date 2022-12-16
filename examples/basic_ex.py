@@ -10,10 +10,8 @@ env.read_env()
 token = env("COMPREDICT_AI_CORE_KEY")
 callback_url = env("COMPREDICT_AI_CORE_CALLBACK", None)
 fail_on_error = env("COMPREDICT_AI_CORE_FAIL_ON_ERROR", False)
-ppk = env("COMPREDICT_AI_CORE_PPK", None)
-passphrase = env("COMPREDICT_AI_CORE_PASSPHRASE", "")
 
-client = api.get_instance(token=token, callback_url=callback_url, ppk=ppk, passphrase=passphrase)
+client = api.get_instance(token=token, callback_url=callback_url)
 client.fail_on_error(option=fail_on_error)
 
 # get a graph
@@ -38,7 +36,7 @@ tmp.close()  # It is tmp file. close the file to remove it.
 
 data = dict()  # data for predictions
 
-results = algorithm.run(data, evaluate=False, encrypt=True)
+results = algorithm.run(data, evaluate=False)
 
 if isinstance(results, resources.Task):
     print(results.job_id)
