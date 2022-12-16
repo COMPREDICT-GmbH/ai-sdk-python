@@ -2,8 +2,6 @@ import json
 from pathlib import Path
 
 import pytest
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.PublicKey import RSA
 from requests import Response
 
 from compredict.client import api
