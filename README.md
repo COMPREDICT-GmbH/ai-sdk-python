@@ -17,7 +17,6 @@ Requirements
 
 - Token generated with your AI Core username and password
 - (Optional) Callback url to send the results
-- (Optional) Private key for decrypting the messages.
 
 Installation
 ------------
@@ -77,8 +76,7 @@ compredict_client = compredict.client.api.get_instance(token=your_new_generated_
 ~~~python
 import compredict
 
-compredict_client = compredict.client.api.get_instance(username=username, password=password, callback_url=None, 
-                                                       ppk=None, passphrase="")
+compredict_client = compredict.client.api.get_instance(username=username, password=password, callback_url=None)
 ~~~
 
 ### Accessing new access token with token refresh
@@ -200,7 +198,6 @@ Task|Result = algorithm.run(data, evaluate=True, encrypt=False, callback_url=Non
    - `str`: path to the file to be sent, set the `file_content_type` to the mime type or empty for `application/json`
    - `pandas`: DataFrame containing the data, set the `file_content_type` to convert the content to appropriate file. 
 - `evaluate`: to evaluate the result of the algorithm. Check `algorithm.evaluations`, *more in depth later*.
-- `encrypt`: to encrypt the data using RSA AES, *more in depth later*.
 - `callback_url`: If the result is `Task`, then AI core will send back the results to the provided URL once processed. It can be multiple callbacks
 - `callback_param`: additional parameters to pass when results are sent to callback url. In case of multiple callbacks, it can be a single callback params for all, or multiple callback params for each callback url.
 - `file_content_type`: The type of data to be sent. Based on `algorithm.accepted_file_format`. it could be:
@@ -224,7 +221,7 @@ callback_url = ["https://me.myportal.cloudapp.azure.com", "http://me.mydata.s3.a
 After creating a list, use it when running algorithm:
 
 ~~~python
-results = algorithm.run(data, callback_url=callback_url, evaluate=False, encrypt=True)
+results = algorithm.run(data, callback_url=callback_url, evaluate=False)
 ~~~ 
 
 **Example of sending data as `application/json`:**
@@ -301,34 +298,13 @@ by calling:
 algorithm.evaluations  # associative array.
 ~~~
 
-When running the algorithm, with `evaluate = True`, then the algorithm will be evaluated by the default parameters. In order to tweek these parameters, you have to specify an associative array with the modified parameters. For example:
+When running the algorithm, with `evaluate = True`, then the algorithm will be evaluated by the default parameters. 
+In order to tweak these parameters, you have to specify an associative array with the modified parameters. For example:
 
 ~~~python
 evaluate = {"rainflow-counting": {"hysteresis": 0.2, "N":100000}} # evaluate name and its params
 
 result = algorithm.run(X_test, evaluate=evaluate)
-~~~
-
-Data Privacy
-------------
-
-When the calculation is queued in COMPREDICT, the result of the calculations will be stored temporarily for three days. If the data is private and there are organizational issues in keeping this data stored in COMPREDICT, then you can encrypt the data using RSA. COMPREDICT allow user's to add RSA public key in the Dashboard. Then, COMPREDICT will use the public key to encrypt the stored results. In return, The SDK will use the provided private key to decrypt the returned results.
-
-COMPREDICT will only encrypt the results when:
-
-- The user provide a public key in the dashboard.
-- Specify **encrypt** parameter in the predict function as True.
-
-Here is an example:
-~~~python
-# First, you should provide public key in COMPREDICT's dashboard.
-
-# Second, Call predict and set encrypt as True
-results = algorithm.run(X_test, evaluate=True, encrypt=True)
-
-if isinstance(results, resources.Task):
-    if results.status is results.STATUS_FINISHED:
-        print(results.is_encrypted)
 ~~~
 
 

@@ -1,12 +1,9 @@
-import base64
 from json import dumps as json_dump, dump
 from os import remove
 from os.path import exists
 from tempfile import NamedTemporaryFile
-from typing import Optional, Union, IO, List, Type
+from typing import Optional, Union, List, Type
 
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.PublicKey import RSA
 from pandas import DataFrame
 from pandas.io.common import get_handle
 
@@ -29,18 +26,18 @@ class api:
                  token: Optional[str] = None,
                  token_refresh: Optional[str] = None,
                  callback_url: Optional[str] = None,
-                 ppk: Optional[str] = None,
-                 passphrase: Optional[str] = None,
                  url: Optional[str] = None,
                  validate: Optional[bool] = False):
         """
         COMPREDICT's AI Core Client that will provide an interface for communication. This class is singleton.
 
+        :param username: User's username in AI Core.
+        :param password: User's password to AI Core.
         :param token: API Key used for authorization.
+        :param token_refresh: Token used, when 'token' value is expired, to generate new token.
         :param callback_url: URL for sending the results of long processes.
-        :param ppk: Path to private key for decrypted requests responses (optional, only valid if public key is given \
-        in dashboard)
-        :param passphrase: Password to the private key.
+        :param url: URL to desired version of AI Core used.
+        :param validate: indicates, if token should be validated (defaults to False)
         """
         self.url = api.BASE_URL.format(api.API_VERSION) if url is None else url
         self.connection = Connection(url=self.url)
@@ -58,9 +55,6 @@ class api:
 
         self.callback_url = callback_url
         self.connection.set_token(self.token)
-        self.rsa_key = None
-        if ppk is not None:
-            self.set_ppk(ppk, passphrase)
 
     def fail_on_error(self, option: bool = True):
         """
@@ -70,18 +64,6 @@ class api:
         :return: None
         """
         self.connection.fail_on_error = option
-
-    def set_ppk(self, ppk: str, passphrase: str = ''):
-        """
-        Load the private key from the path and set the correct padding scheme.
-
-        :param ppk: path to private key
-        :param passphrase: password of the private key if any
-        :return: None
-        """
-        with open(ppk) as f:
-            self.rsa_key = RSA.importKey(f.read(), passphrase=passphrase)
-            self.rsa_key = PKCS1_OAEP.new(self.rsa_key)
 
     def verify_peer(self, option: str):
         """
@@ -274,7 +256,6 @@ class api:
                       data: Union[str, DataFrame, dict],
                       version: Optional[str] = None,
                       evaluate: bool = True,
-                      encrypt: bool = False,
                       callback_url: Optional[Union[str, List[str]]] = None,
                       callback_param: Optional[Union[dict, List[dict]]] = None,
                       file_content_type: Optional[str] = None,
@@ -287,7 +268,6 @@ class api:
         :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
         :param version: Choose the version of the algorithm you would like to call. Default is latest version.
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
-        :param encrypt: Boolean to encrypt the data if the data is escalated to queue or not.
         :param callback_param: The callback additional parameter to be sent back when requesting the results.
                                If multiple callback_urls are specified, different parameters can be defined for each
                                url. In this case list of dictionaries is required. If single callback dictionary is
@@ -296,15 +276,12 @@ class api:
         :param callback_url: Callback urls to send the results to once computed, can be a list of urls.
         :param file_content_type: type of data to be sent to AI Core.
         :param compression: The compressed type of the data, the compression supported is what pandas supports \
-        for the file content type you will send. Compression is only supported if encrypt is false. Based on data type:
+        for the file content type you will send. Based on data type:
             - if data is pandas or dict, then the compression is done by the function.
             - if string or path, then it describes the compression of the file sent.
         :param monitor: Boolean to monitor the output results of the model or not.
         :return: Prediction if results are return instantly or Task otherwise.
         """
-        if encrypt is True and self.rsa_key is None:
-            raise ClientError("Please supply private key to encrypt the data")
-        compression = compression if encrypt is False else None
 
         file, to_remove = None, False
         try:
@@ -314,11 +291,10 @@ class api:
             callback_url = self._set_callback_urls(
                 callback_url) if callback_url is not None else self.callback_url
 
-            params = dict(evaluate=self.__process_evaluate(evaluate), encrypt=encrypt, monitor=monitor,
+            params = dict(evaluate=self.__process_evaluate(evaluate), monitor=monitor,
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
-            if encrypt:
-                self.RSA_encrypt(file)
+
             file_name = adjust_file_name_to_content_type(file_content_type)
             files = {"features": (file_name, file, file_content_type)}
             response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id),
@@ -472,80 +448,6 @@ class api:
     def __build_get_args(**kwargs):
         return "?" + "&".join(
             ["{}={}".format(key, value) for key, value in kwargs.items() if value is not None])
-
-    def RSA_encrypt(self, data: Union[str, IO], chunk_size: int = 214):
-        """
-        Encrypt the message by the provided RSA public key.
-
-        :param data: message of file contains the data to be encrypted
-        :type data: string | file
-        :param chunk_size: the chunk size used for PKCS1_OAEP decryption, it is determined by \
-        the private key length used in bytes - 42 bytes.
-        :type chunk_size: int
-        :return: Base 64 encryption of the encrypted message
-        :rtype: binray
-        """
-        if self.rsa_key is None:
-            raise ClientError("Path to private key should be provided to decrypt the response.")
-
-        is_file = hasattr(data, 'read') and hasattr(data, 'write')
-        msg = data if not is_file else data.read()
-
-        padding = b"" if isinstance(msg, bytes) else ""
-
-        encrypted = b''
-        offset = 0
-        end_loop = False
-
-        while not end_loop:
-            chunk = msg[offset:offset + chunk_size]
-
-            if len(chunk) % chunk_size != 0:
-                chunk += padding * (chunk_size - len(chunk))
-                end_loop = True
-
-            chunk = chunk if isinstance(msg, bytes) else chunk.encode()
-            encrypted += self.rsa_key.encrypt(chunk)
-            offset += chunk_size
-
-        encrypted = base64.b64encode(encrypted)
-
-        if is_file:
-            data.seek(0)
-            data.write(encrypted)
-            data.seek(0)
-
-        return encrypted
-
-    def RSA_decrypt(self, encrypted_msg: Union[str, bytes], chunk_size=256, to_bytes=False):
-        """
-        Decrypt the encrypted message by the provided RSA private key.
-
-        :param encrypted_msg: Base 64 encode of The encrypted message.
-        :type encrypted_msg: binary
-        :param chunk_size: It is determined by the private key length used in bytes.
-        :type chunk_size: int
-        :param to_bytes: Return bytes instead of string
-        :type to_bytes: Boolean (default False)
-        :return: The decrypted message
-        :rtype: string
-        """
-        if self.rsa_key is None:
-            raise ClientError("Path to private key should be provided to decrypt the response.")
-
-        encrypted_msg = base64.b64decode(encrypted_msg)
-
-        offset = 0
-        decrypted = b""
-
-        while offset < len(encrypted_msg):
-            chunk = encrypted_msg[offset:offset + chunk_size]
-
-            decrypted += self.rsa_key.decrypt(chunk)
-
-            offset += chunk_size
-
-        return decrypted.decode() if not to_bytes else decrypted
 
     @staticmethod
     def __is_binary(filepath: str):
