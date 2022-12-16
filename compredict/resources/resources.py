@@ -110,7 +110,6 @@ class Task(BaseResource):
         self.status = self.status if self.status is not None else Task.STATUS_PENDING
         self.success = self.success if self.success is not None else None
         self.error = self.error if self.error is not None else None
-        self.is_encrypted = self.is_encrypted if self.is_encrypted is not None else False
         self._set_results(self.predictions, self.evaluations, self.monitors)
 
     def update(self):
@@ -129,13 +128,6 @@ class Task(BaseResource):
         self.evaluations = None
         self.monitors = None
         if self.status == Task.STATUS_FINISHED and self.success is True:
-            if self.is_encrypted:
-                self.predictions = self.client.RSA_decrypt(predictions)
-                if evaluations is not None:
-                    self.evaluations = self.client.RSA_decrypt(evaluations)
-                if monitors is not None:
-                    self.monitors = self.client.RSA_decrypt(monitors)
-            else:
-                self.predictions = predictions
-                self.evaluations = evaluations
-                self.monitors = monitors
+            self.predictions = predictions
+            self.evaluations = evaluations
+            self.monitors = monitors
