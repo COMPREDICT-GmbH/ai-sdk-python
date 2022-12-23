@@ -214,32 +214,36 @@ class api:
         """
         Process the given data and convert it to file.
 
-        :param data: The data to be sent for computation and prediction.
-        :type data: dict | str | pandas
-        :param content_type: The file content type to be converted to and sent.
-        :type content_type: string
-        :return: opened file, str, bool
-        """
-        if content_type is not None and content_type not in CONTENT_TYPES:
-            raise ValueError("`{}` is not one of the allowed content types: {}".format(content_type,
-                                                                                       CONTENT_TYPES))
+        In case of data provided as path to file, make sure that file is of correct type.
 
+        In case of parameters provided as dict: create json file from dict.
+        In case of features provided as list or dict: create DataFrame from dict or list,
+        and then write DatFrame into parquet file.
+        In case of features provided as DataFrame: write DataFrame into parquet file.
+
+        :param data: The data to be sent for computation and prediction.
+        :type data: dict | list| str | pandas
+        :param type_of_data: Data can be of type: 'features' or of type: 'parameters'.
+        Features will be always converted into parquet file, whereas parameters into json file.
+        :return: opened file, bool indicating if file should be removed afterwards.
+        File is signed to be removed if TemporaryFile was generated from provided data.
+        """
         if isinstance(data, str):
-            return open(data, "rb+"), content_type, False
+            self.__raise_error_if_file_type_incorrect(data, type_of_data)
+            return open(data, "rb+"), False
 
         file = NamedTemporaryFile('wb+', delete=False)
         if isinstance(data, dict):
-            content_type = "application/json"
-            self.__write_json_file(file, data, compression=compression)
-        elif isinstance(data, DataFrame):
-            if content_type is None or content_type == "application/json":
-                content_type = "application/json"
-                self.__write_json_file(file, data.to_dict("list"), compression=compression)
-            elif content_type == "application/parquet":
-                data.to_parquet(file.name, compression=compression)
-            elif content_type == "text/csv":
-                data.to_csv(file.name, sep=',', compression=compression)
-        return file, content_type, True
+            if type_of_data == 'parameters':
+                self.__write_json_file(file, data, compression=compression)
+            else:
+                data = DataFrame(data, index=[0])
+        elif isinstance(data, list):
+            data = DataFrame(data)
+
+        if type_of_data == 'features':
+            data.to_parquet(file.name, compression=compression)
+        return file, True
 
     @staticmethod
     def __write_json_file(t_file, data, compression=None):
