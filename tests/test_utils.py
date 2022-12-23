@@ -1,18 +1,4 @@
-import pytest
-
-from compredict.utils.utils import adjust_file_name_to_content_type, extract_error_message
-
-
-@pytest.mark.parametrize(
-    "content_type, features_name",
-    [
-        ("application/json", "features.json"),
-        ("application/parquet", "features.parquet"),
-        ("text/csv", "features.csv")
-    ]
-)
-def test_adjust_file_name_to_content_type(content_type, features_name):
-    assert adjust_file_name_to_content_type(content_type) == features_name
+from compredict.utils.utils import extract_error_message
 
 
 def test_extract_error_message():
