@@ -12,9 +12,6 @@ from compredict.exceptions import ClientError, Error
 from compredict.resources import resources
 from compredict.singleton import Singleton
 from compredict.utils.authentications import generate_token, generate_token_from_refresh_token, verify_token
-from compredict.utils.utils import adjust_file_name_to_content_type
-
-CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
 
 @Singleton
