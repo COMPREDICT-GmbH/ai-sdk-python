@@ -277,40 +277,46 @@ class api:
 
     def run_algorithm(self,
                       algorithm_id: str,
-                      data: Union[str, DataFrame, dict],
+                      features: Union[str, DataFrame, dict, List[dict]],
                       version: Optional[str] = None,
                       evaluate: bool = True,
                       callback_url: Optional[Union[str, List[str]]] = None,
                       callback_param: Optional[Union[dict, List[dict]]] = None,
-                      file_content_type: Optional[str] = None,
+                      parameters: Optional[Union[str, dict]] = None,
                       compression: Optional[str] = None,
                       monitor: bool = True) -> Union[resources.Task, resources.Result, bool]:
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
         :param algorithm_id: String identifier of the algorithm
-        :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
-        :param version: Choose the version of the algorithm you would like to call. Default is latest version.
+        :param features: Features can be specified as path to features .parquet file, dictionary,
+        list of dictionaries or pandas.Dataframe.
+        :param version: Choose the version of the algorithm you would like to call. Defaults to latest version.
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
-        :param callback_param: The callback additional parameter to be sent back when requesting the results.
+        :param callback_param: The callback additional parameter to be sent with results.
                                If multiple callback_urls are specified, different parameters can be defined for each
-                               url. In this case list of dictionaries is required. If single callback dictionary is
-                               passed with list of callback urls - then the same parameters will be used with all
-                               callback urls.
-        :param callback_url: Callback urls to send the results to once computed, can be a list of urls.
-        :param file_content_type: type of data to be sent to AI Core.
+                               url. In this case list of dictionaries is required (each callback dict for each
+                               callback url). If single callback dictionary is passed with list of callback urls -
+                               then the same parameters will be send to all provided callback urls.
+        :param callback_url: Callback urls that result will be send, once computed. Can be single url or multiple
+                             urls in a list.
+        :param parameters: Parameters used for configuration of algorithm (specific for each algorithm).
         :param compression: The compressed type of the data, the compression supported is what pandas supports \
         for the file content type you will send. Based on data type:
             - if data is pandas or dict, then the compression is done by the function.
             - if string or path, then it describes the compression of the file sent.
         :param monitor: Boolean to monitor the output results of the model or not.
-        :return: Prediction if results are return instantly or Task otherwise.
+        :return: Prediction if results are returned instantly or Task otherwise.
         """
 
-        file, to_remove = None, False
+        features_file, is_features_file_to_remove = None, False
+        parameters_file, is_parameters_file_to_remove = None, False
         try:
-            file, file_content_type, to_remove = self.__process_data(data, file_content_type,
-                                                                     compression=compression)
+            features_file, is_features_file_to_remove = self.__process_data(features, "features",
+                                                                            compression=compression)
+            if parameters:
+                parameters_file, is_parameters_file_to_remove = self.__process_data(parameters, "parameters",
+                                                                                    compression=compression)
 
             callback_url = self._set_callback_urls(
                 callback_url) if callback_url is not None else self.callback_url
@@ -319,38 +325,35 @@ class api:
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
 
-            file_name = adjust_file_name_to_content_type(file_content_type)
-            files = {"features": (file_name, file, file_content_type)}
-            response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id),
+            files = {"features": ("features.parquet", features_file, "application/parquet"),
+                     "parameters": ("parameters.json", parameters_file, "application/json")}
+
+            response = self.connection.POST(f'/algorithms/{algorithm_id}/predict',
                                             data=params, files=files)
             resource = 'Task' if response is not False and 'job_id' in response else 'Result'
-        except Exception as e:
-            raise e
         finally:
-            if file is not None:
-                file.close()
-                if to_remove and exists(file.name):
-                    remove(file.name)
+            self.__remove_file(features_file, is_features_file_to_remove)
+            self.__remove_file(parameters_file, is_parameters_file_to_remove)
         return self.__map_resource(resource, response)
 
     def train_algorithm(self,
                         algorithm_id: str,
-                        data: Union[str, DataFrame, dict],
+                        features: Union[str, DataFrame, dict, List[dict]],
                         version: Optional[str] = None,
                         export_new_version: Optional[bool] = None,
-                        file_content_type: Optional[str] = None,
+                        parameters: Optional[Union[str, dict]] = None,
                         compression: Optional[str] = None,
                         monitor: bool = True) -> Union[resources.Task, bool]:
         """
         Train fit algorithm with the passed data.
 
         :param algorithm_id: String identifier of the algorithm.
-        :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
+        :param features: JSON format of the data given with the correct keys as specified in the algorithm's template.
         :param version: Choose the version of the algorithm you would like to call. Default is latest version.
         :param export_new_version: The trained model will be exported to a new version if True.
                Otherwise, the requested version will be updated. If None, then the model’s default behavior
                will be executed. Default behaviour is controlled by the algorithm’s author.
-        :param file_content_type: Type of data to be sent to AI Core.
+        :param parameters: Parameters used for configuration of algorithm (specific for each algorithm).
         :param compression: The compressed type of the data, the compression supported is what pandas supports
                for the file content type you will send. Based on data type:
                - if data is pandas or dict, then the compression is done by the function.
@@ -358,24 +361,27 @@ class api:
         :param monitor: Boolean to monitor the output results of the model or not
         :return: Task (since all processing fit algorithms always end up in queue).
         """
+        features_file, to_remove_features = None, False
+        parameters_file, to_remove_parameters = None, False
 
-        file, to_remove = None, False
         try:
-            file, file_content_type, to_remove = self.__process_data(data, file_content_type,
-                                                                     compression=compression)
+            features_file, is_features_file_to_remove = self.__process_data(features, "features",
+                                                                            compression=compression)
+            if parameters is not None:
+                parameters_file, is_parameters_file_to_remove = self.__process_data(parameters, "parameters",
+                                                                                    compression=compression)
+
+            files = {"features": ("features.parquet", features_file, "application/parquet"),
+                     "parameters": ("parameters.json", parameters_file, "application/json")}
+
             params = dict(export_new_version=export_new_version, compression=compression, version=version,
                           monitor=monitor)
-            file_name = adjust_file_name_to_content_type(file_content_type)
-            files = {"features": (file_name, file, file_content_type)}
+
             response = self.connection.POST('/algorithms/{}/fit'.format(algorithm_id),
                                             data=params, files=files)
-        except Exception as e:
-            raise e
         finally:
-            if file is not None:
-                file.close()
-                if to_remove and exists(file.name):
-                    remove(file.name)
+            self.__remove_file(features_file, to_remove_features)
+            self.__remove_file(parameters_file, to_remove_parameters)
         return self.__map_resource("Task", response)
 
     @staticmethod
