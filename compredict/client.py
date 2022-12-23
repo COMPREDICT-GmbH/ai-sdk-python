@@ -450,9 +450,10 @@ class api:
         done to delete it.
 
         :param algorithm_id: String identifier of the Algorithm.
-        :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
-        :param version: (default None) ability to specify the version of the template to retrieve. Default will get
-        the latest version.
+        :param file_type: (default `input`) indicates from which algorithms template data graph should be retrieved.
+            Can be 'input', 'output' or 'parameters'.
+        :param version: (default None) version of algorithm from which template should be retrieved.
+            Defaults to latest version of algorithm.
         :return: NamedTemporaryFile of the results.
         """
         get_args = self.__build_get_args(type=file_type, version=version)
@@ -464,10 +465,11 @@ class api:
         """
         Return the graph that explains the input data to be sent for the algorithms.
 
-        :param algorithm_id: String identifier of the Algorithm.
-        :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
-        :param version: (default None) ability to specify the version of the graph to retrieve. Default will get
-        the latest version.
+        :param algorithm_id: String identifier of the algorithm.
+        :param file_type: (default `input`) indicates from which algorithms template data graph should be retrieved.
+            Can be 'input', 'output' or 'parameters'.
+        :param version: (default None) version of algorithm from which graph should be retrieved.
+            Defaults to latest version of algorithm.
         :return: NamedTemporaryFile of the results.
         """
         get_args = self.__build_get_args(type=file_type, version=version)
