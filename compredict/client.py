@@ -248,7 +248,7 @@ class api:
     @staticmethod
     def __write_json_file(t_file, data, compression=None):
         """
-        function to write JSON into a file and point again to the top of the file for reading.
+        Function to write JSON into a file and point again to the top of the file for reading.
 
         :param t_file: temporary file to contain the data
         :type t_file: tempfile.NamedTemporaryFile
@@ -264,6 +264,16 @@ class api:
         with file as f:
             dump(data, f)
         t_file.seek(0)
+
+    @staticmethod
+    def __remove_file(file, is_to_remove):
+        """
+        Remove temporary created file.
+        """
+        if file is not None:
+            file.close()
+            if is_to_remove and exists(file.name):
+                remove(file.name)
 
     def run_algorithm(self,
                       algorithm_id: str,
