@@ -197,7 +197,20 @@ class api:
         response = self.connection.GET('/algorithms/{}'.format(algorithm_id))
         return self.__map_resource('Algorithm', response)
 
-    def __process_data(self, data, content_type=None, compression=None):
+    @staticmethod
+    def __raise_error_if_file_type_incorrect(path_to_file: str, type_of_file: str):
+        """
+        Features file can be only provided as .parquet, whereas parameters file can be only provided as .json.
+        This method will raise ValueError if features/parameter file specified, breaks this rule.
+        """
+        split_path = path_to_file.split(".")
+        extension = split_path[-1]
+        if type_of_file == "features" and extension != "parquet":
+            raise ValueError(f"Features file format: {extension} is not accepted. Parquet file is required.")
+        elif type_of_file == "parameters" and extension != "json":
+            raise ValueError(f"Parameters file format: {extension} is not accepted. Json file is required.")
+
+    def __process_data(self, data, type_of_data, compression=None):
         """
         Process the given data and convert it to file.
 
