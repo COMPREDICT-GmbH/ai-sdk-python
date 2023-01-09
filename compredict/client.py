@@ -204,8 +204,7 @@ class api:
         Features file can be only provided as .parquet, whereas parameters file can be only provided as .json.
         This method will raise ValueError if features/parameter file specified, breaks this rule.
         """
-        split_path = os.path.splitext(path_to_file)
-        extension = split_path[-1]
+        _, extension = os.path.splitext(path_to_file)
         if type_of_file == "features" and extension != ".parquet":
             raise ValueError(f"Features file format: {extension} is not accepted. Parquet file is required.")
         elif type_of_file == "parameters" and extension != ".json":
