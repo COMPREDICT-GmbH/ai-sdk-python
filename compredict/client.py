@@ -1,3 +1,4 @@
+import os
 from json import dumps as json_dump, dump
 from os import remove
 from os.path import exists
@@ -203,11 +204,11 @@ class api:
         Features file can be only provided as .parquet, whereas parameters file can be only provided as .json.
         This method will raise ValueError if features/parameter file specified, breaks this rule.
         """
-        split_path = path_to_file.split(".")
+        split_path = os.path.splitext(path_to_file)
         extension = split_path[-1]
-        if type_of_file == "features" and extension != "parquet":
+        if type_of_file == "features" and extension != ".parquet":
             raise ValueError(f"Features file format: {extension} is not accepted. Parquet file is required.")
-        elif type_of_file == "parameters" and extension != "json":
+        elif type_of_file == "parameters" and extension != ".json":
             raise ValueError(f"Parameters file format: {extension} is not accepted. Json file is required.")
 
     def __process_data(self, data, type_of_data, compression=None):
