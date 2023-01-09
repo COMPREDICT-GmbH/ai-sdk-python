@@ -5,7 +5,7 @@ COMPREDICT's AI CORE API Client
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/COMPREDICT-GmbH/ai-sdk-python)
 [![PyPI](https://img.shields.io/pypi/v/COMPREDICT-AI-SDK?color=orange)](https://pypi.org/project/COMPREDICT-AI-SDK/)
 
-**Python client for connecting to the COMPREDICT V1 REST API.**
+**Python client for connecting to the COMPREDICT V2 REST API.**
 
 **To find out more, please visit** **[COMPREDICT website](https://compredict.ai/ai-core/)**.
 
@@ -176,34 +176,38 @@ print(algorithm.description)
 
 Algorithm RUN (POST)
 --------------------
+Each algorithm, that user has access to, is different. It has different:
 
-Any algorithm a user has access to is different, it has different:
+- Input data and structure
+- Output data
+- Parameters data
+- Evaluation set
+- Result instance
+- Monitoring Tools
 
-- Input data and structure.
-- Output data.
-- Evaluation set.
-- Result instance.
-- Monitoring Tools.
-- Accepted file format.
+**Features data, used for prediction, always needs to be provided in parquet file, whereas
+parameters data is always provided in json file.** 
+
+**User, taking advantage of this SDK, can specify features in 
+dictionary, list of dictionaries, DataFrame or string with path pointing out to parquet file.**
 
 The `run` function has the following signature: 
 
 ~~~python
-Task|Result = algorithm.run(data, evaluate=True, encrypt=False, callback_url=None, 
+Task|Result = algorithm.run(data, parameters=parameters, evaluate=True, encrypt=False, callback_url=None, 
                             callback_param=None, file_content_type=None, monitor=True)
 ~~~
 
-- `data`: data to be processed by the algorithm, it can be:
-   - `dict`: forces the file's content type to be `application/json`
-   - `str`: path to the file to be sent, set the `file_content_type` to the mime type or empty for `application/json`
-   - `pandas`: DataFrame containing the data, set the `file_content_type` to convert the content to appropriate file. 
+- `features`: data to be processed by the algorithm, it can be:
+   - `dict`: will be written into parquet file
+   - `str`: path to the file to be sent (only parquet file will be accepted)
+   - `pandas`: DataFrame containing the data, will be written into parquet file as well
+- `parameters`: Parameters used for configuration of algorithm (specific for each algorithm). It is optional and can be:
+    - `dict`: will be converted into json file
+    - `str` : path to json file with parameters data
 - `evaluate`: to evaluate the result of the algorithm. Check `algorithm.evaluations`, *more in depth later*.
 - `callback_url`: If the result is `Task`, then AI core will send back the results to the provided URL once processed. It can be multiple callbacks
 - `callback_param`: additional parameters to pass when results are sent to callback url. In case of multiple callbacks, it can be a single callback params for all, or multiple callback params for each callback url.
-- `file_content_type`: The type of data to be sent. Based on `algorithm.accepted_file_format`. it could be:
-    - `application/json`: for dict data.
-    - `text/csv`: when passing pandas DataFrame.
-    - `application/parquet`: when passing pandas's DataFrame.
 - `monitor`: boolean indicating if the output results of the model should be monitored or not. By default it is set 
   to True.
     
@@ -224,7 +228,7 @@ After creating a list, use it when running algorithm:
 results = algorithm.run(data, callback_url=callback_url, evaluate=False)
 ~~~ 
 
-**Example of sending data as `application/json`:**
+**Example of specifying features data in a dictionary and sending it for prediction:**
 
 ~~~python
 X_test = dict(
@@ -248,7 +252,7 @@ or sends the results instantly by checking:
 or dynamically:
 
 ~~~python
-results = algorithm.run(X_test, evaluate=True)
+results = algorithm.run(X_test, parameters=parameters, evaluate=True)
 
 if isinstance(results, compredict.resources.Task):
     print(results.job_id)
@@ -267,7 +271,7 @@ else:  # not a Task, it is a Result Instance
     print(results.predictions)
 ~~~
 
-**Example of sending data as `application/parquet`:**
+**Example of specifying features data in DataFrame and sending it for prediction:**
 
 ~~~python
 import pandas as pd
@@ -278,14 +282,14 @@ X_test = pd.DataFrame(dict(
 ))
 
 algorithm = compredict_client.get_algorithm('algorithm_id')
-result = algorithm.run(X_test, file_content_type="application/parquet")
+result = algorithm.run(X_test)
 ~~~
 
-**Example of sending data from parquet file:**
+**Example specifying features data directly in parquet file and sending it for prediction:**
 
 ~~~python
 algorithm = compredict_client.get_algorithm('algorithm_id')
-result = algorithm.run("/path/to/file.parquet", file_content_type="application/parquet")
+result = algorithm.run("/path/to/file.parquet")
 ~~~
 
 If you set up ``callback_url`` then the results will be POSTed automatically to you once the

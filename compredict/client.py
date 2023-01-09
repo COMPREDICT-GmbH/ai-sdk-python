@@ -1,3 +1,4 @@
+import os
 from json import dumps as json_dump, dump
 from os import remove
 from os.path import exists
@@ -12,9 +13,6 @@ from compredict.exceptions import ClientError, Error
 from compredict.resources import resources
 from compredict.singleton import Singleton
 from compredict.utils.authentications import generate_token, generate_token_from_refresh_token, verify_token
-from compredict.utils.utils import adjust_file_name_to_content_type
-
-CONTENT_TYPES = ["application/json", "application/parquet", "text/csv"]
 
 
 @Singleton
@@ -200,41 +198,57 @@ class api:
         response = self.connection.GET('/algorithms/{}'.format(algorithm_id))
         return self.__map_resource('Algorithm', response)
 
-    def __process_data(self, data, content_type=None, compression=None):
+    @staticmethod
+    def __raise_error_if_file_type_incorrect(path_to_file: str, type_of_file: str):
+        """
+        Features file can be only provided as .parquet, whereas parameters file can be only provided as .json.
+        This method will raise ValueError if features/parameter file specified, breaks this rule.
+        """
+        _, extension = os.path.splitext(path_to_file)
+        if type_of_file == "features" and extension != ".parquet":
+            raise ValueError(f"Features file format: {extension} is not accepted. Parquet file is required.")
+        elif type_of_file == "parameters" and extension != ".json":
+            raise ValueError(f"Parameters file format: {extension} is not accepted. Json file is required.")
+
+    def __process_data(self, data, type_of_data, compression=None):
         """
         Process the given data and convert it to file.
 
-        :param data: The data to be sent for computation and prediction.
-        :type data: dict | str | pandas
-        :param content_type: The file content type to be converted to and sent.
-        :type content_type: string
-        :return: opened file, str, bool
-        """
-        if content_type is not None and content_type not in CONTENT_TYPES:
-            raise ValueError("`{}` is not one of the allowed content types: {}".format(content_type,
-                                                                                       CONTENT_TYPES))
+        In case of data provided as path to file, make sure that file is of correct type.
 
+        In case of parameters provided as dict: create json file from dict.
+        In case of features provided as list or dict: create DataFrame from dict or list,
+        and then write DatFrame into parquet file.
+        In case of features provided as DataFrame: write DataFrame into parquet file.
+
+        :param data: The data to be sent for computation and prediction.
+        :type data: dict | list| str | pandas
+        :param type_of_data: Data can be of type: 'features' or of type: 'parameters'.
+        Features will be always converted into parquet file, whereas parameters into json file.
+        :return: opened file, bool indicating if file should be removed afterwards.
+        File is signed to be removed if TemporaryFile was generated from provided data.
+        """
         if isinstance(data, str):
-            return open(data, "rb+"), content_type, False
+            self.__raise_error_if_file_type_incorrect(data, type_of_data)
+            return open(data, "rb+"), False
 
         file = NamedTemporaryFile('wb+', delete=False)
         if isinstance(data, dict):
-            content_type = "application/json"
-            self.__write_json_file(file, data, compression=compression)
-        elif isinstance(data, DataFrame):
-            if content_type is None or content_type == "application/json":
-                content_type = "application/json"
-                self.__write_json_file(file, data.to_dict("list"), compression=compression)
-            elif content_type == "application/parquet":
-                data.to_parquet(file.name, compression=compression)
-            elif content_type == "text/csv":
-                data.to_csv(file.name, sep=',', compression=compression)
-        return file, content_type, True
+            if type_of_data == 'parameters':
+                self.__write_json_file(file, data, compression=compression)
+            else:
+                data = DataFrame(data, index=[0])
+        elif isinstance(data, list):
+            data = DataFrame(data)
+
+        if type_of_data == 'features':
+            data.to_parquet(file.name, compression=compression)
+        return file, True
 
     @staticmethod
     def __write_json_file(t_file, data, compression=None):
         """
-        function to write JSON into a file and point again to the top of the file for reading.
+        Function to write JSON into a file and point again to the top of the file for reading.
 
         :param t_file: temporary file to contain the data
         :type t_file: tempfile.NamedTemporaryFile
@@ -251,42 +265,58 @@ class api:
             dump(data, f)
         t_file.seek(0)
 
+    @staticmethod
+    def __remove_file(file, is_to_remove):
+        """
+        Remove temporary created file.
+        """
+        if file is not None:
+            file.close()
+            if is_to_remove and exists(file.name):
+                remove(file.name)
+
     def run_algorithm(self,
                       algorithm_id: str,
-                      data: Union[str, DataFrame, dict],
+                      features: Union[str, DataFrame, dict, List[dict]],
                       version: Optional[str] = None,
                       evaluate: bool = True,
                       callback_url: Optional[Union[str, List[str]]] = None,
                       callback_param: Optional[Union[dict, List[dict]]] = None,
-                      file_content_type: Optional[str] = None,
+                      parameters: Optional[Union[str, dict]] = None,
                       compression: Optional[str] = None,
                       monitor: bool = True) -> Union[resources.Task, resources.Result, bool]:
         """
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
         :param algorithm_id: String identifier of the algorithm
-        :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
-        :param version: Choose the version of the algorithm you would like to call. Default is latest version.
+        :param features: Features can be specified as path to features .parquet file, dictionary,
+        list of dictionaries or pandas.Dataframe.
+        :param version: Choose the version of the algorithm you would like to call. Defaults to latest version.
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
-        :param callback_param: The callback additional parameter to be sent back when requesting the results.
+        :param callback_param: The callback additional parameter to be sent with results.
                                If multiple callback_urls are specified, different parameters can be defined for each
-                               url. In this case list of dictionaries is required. If single callback dictionary is
-                               passed with list of callback urls - then the same parameters will be used with all
-                               callback urls.
-        :param callback_url: Callback urls to send the results to once computed, can be a list of urls.
-        :param file_content_type: type of data to be sent to AI Core.
+                               url. In this case list of dictionaries is required (each callback dict for each
+                               callback url). If single callback dictionary is passed with list of callback urls -
+                               then the same parameters will be send to all provided callback urls.
+        :param callback_url: Callback urls that result will be send, once computed. Can be single url or multiple
+                             urls in a list.
+        :param parameters: Parameters used for configuration of algorithm (specific for each algorithm).
         :param compression: The compressed type of the data, the compression supported is what pandas supports \
         for the file content type you will send. Based on data type:
             - if data is pandas or dict, then the compression is done by the function.
             - if string or path, then it describes the compression of the file sent.
         :param monitor: Boolean to monitor the output results of the model or not.
-        :return: Prediction if results are return instantly or Task otherwise.
+        :return: Prediction if results are returned instantly or Task otherwise.
         """
 
-        file, to_remove = None, False
+        features_file, is_features_file_to_remove = None, False
+        parameters_file, is_parameters_file_to_remove = None, False
         try:
-            file, file_content_type, to_remove = self.__process_data(data, file_content_type,
-                                                                     compression=compression)
+            features_file, is_features_file_to_remove = self.__process_data(features, "features",
+                                                                            compression=compression)
+            if parameters:
+                parameters_file, is_parameters_file_to_remove = self.__process_data(parameters, "parameters",
+                                                                                    compression=compression)
 
             callback_url = self._set_callback_urls(
                 callback_url) if callback_url is not None else self.callback_url
@@ -295,38 +325,35 @@ class api:
                           callback_url=callback_url, callback_param=json_dump(callback_param),
                           compression=compression, version=version)
 
-            file_name = adjust_file_name_to_content_type(file_content_type)
-            files = {"features": (file_name, file, file_content_type)}
-            response = self.connection.POST('/algorithms/{}/predict'.format(algorithm_id),
+            files = {"features": ("features.parquet", features_file, "application/parquet"),
+                     "parameters": ("parameters.json", parameters_file, "application/json")}
+
+            response = self.connection.POST(f'/algorithms/{algorithm_id}/predict',
                                             data=params, files=files)
             resource = 'Task' if response is not False and 'job_id' in response else 'Result'
-        except Exception as e:
-            raise e
         finally:
-            if file is not None:
-                file.close()
-                if to_remove and exists(file.name):
-                    remove(file.name)
+            self.__remove_file(features_file, is_features_file_to_remove)
+            self.__remove_file(parameters_file, is_parameters_file_to_remove)
         return self.__map_resource(resource, response)
 
     def train_algorithm(self,
                         algorithm_id: str,
-                        data: Union[str, DataFrame, dict],
+                        features: Union[str, DataFrame, dict, List[dict]],
                         version: Optional[str] = None,
                         export_new_version: Optional[bool] = None,
-                        file_content_type: Optional[str] = None,
+                        parameters: Optional[Union[str, dict]] = None,
                         compression: Optional[str] = None,
                         monitor: bool = True) -> Union[resources.Task, bool]:
         """
         Train fit algorithm with the passed data.
 
         :param algorithm_id: String identifier of the algorithm.
-        :param data: JSON format of the data given with the correct keys as specified in the algorithm's template.
+        :param features: JSON format of the data given with the correct keys as specified in the algorithm's template.
         :param version: Choose the version of the algorithm you would like to call. Default is latest version.
         :param export_new_version: The trained model will be exported to a new version if True.
                Otherwise, the requested version will be updated. If None, then the model’s default behavior
                will be executed. Default behaviour is controlled by the algorithm’s author.
-        :param file_content_type: Type of data to be sent to AI Core.
+        :param parameters: Parameters used for configuration of algorithm (specific for each algorithm).
         :param compression: The compressed type of the data, the compression supported is what pandas supports
                for the file content type you will send. Based on data type:
                - if data is pandas or dict, then the compression is done by the function.
@@ -334,24 +361,27 @@ class api:
         :param monitor: Boolean to monitor the output results of the model or not
         :return: Task (since all processing fit algorithms always end up in queue).
         """
+        features_file, to_remove_features = None, False
+        parameters_file, to_remove_parameters = None, False
 
-        file, to_remove = None, False
         try:
-            file, file_content_type, to_remove = self.__process_data(data, file_content_type,
-                                                                     compression=compression)
+            features_file, is_features_file_to_remove = self.__process_data(features, "features",
+                                                                            compression=compression)
+            if parameters is not None:
+                parameters_file, is_parameters_file_to_remove = self.__process_data(parameters, "parameters",
+                                                                                    compression=compression)
+
+            files = {"features": ("features.parquet", features_file, "application/parquet"),
+                     "parameters": ("parameters.json", parameters_file, "application/json")}
+
             params = dict(export_new_version=export_new_version, compression=compression, version=version,
                           monitor=monitor)
-            file_name = adjust_file_name_to_content_type(file_content_type)
-            files = {"features": (file_name, file, file_content_type)}
+
             response = self.connection.POST('/algorithms/{}/fit'.format(algorithm_id),
                                             data=params, files=files)
-        except Exception as e:
-            raise e
         finally:
-            if file is not None:
-                file.close()
-                if to_remove and exists(file.name):
-                    remove(file.name)
+            self.__remove_file(features_file, to_remove_features)
+            self.__remove_file(parameters_file, to_remove_parameters)
         return self.__map_resource("Task", response)
 
     @staticmethod
@@ -420,9 +450,10 @@ class api:
         done to delete it.
 
         :param algorithm_id: String identifier of the Algorithm.
-        :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
-        :param version: (default None) ability to specify the version of the template to retrieve. Default will get
-        the latest version.
+        :param file_type: (default `input`) indicates from which algorithms template data graph should be retrieved.
+            Can be 'input', 'output' or 'parameters'.
+        :param version: (default None) version of algorithm from which template should be retrieved.
+            Defaults to latest version of algorithm.
         :return: NamedTemporaryFile of the results.
         """
         get_args = self.__build_get_args(type=file_type, version=version)
@@ -434,10 +465,11 @@ class api:
         """
         Return the graph that explains the input data to be sent for the algorithms.
 
-        :param algorithm_id: String identifier of the Algorithm.
-        :param file_type: (default `input`) to retrieve the type of the document. Can be either `input` or `output`
-        :param version: (default None) ability to specify the version of the graph to retrieve. Default will get
-        the latest version.
+        :param algorithm_id: String identifier of the algorithm.
+        :param file_type: (default `input`) indicates from which algorithms template data graph should be retrieved.
+            Can be 'input', 'output' or 'parameters'.
+        :param version: (default None) version of algorithm from which graph should be retrieved.
+            Defaults to latest version of algorithm.
         :return: NamedTemporaryFile of the results.
         """
         get_args = self.__build_get_args(type=file_type, version=version)

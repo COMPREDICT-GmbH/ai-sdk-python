@@ -258,3 +258,15 @@ def response_200_with_url(successful_content):
     response_200_with_url.url = 'https://core.compredict.ai/api/v1/algorithms/56/graph'
     response_200_with_url.headers['Content-Type'] = 'image/png'
     return response_200_with_url
+
+
+@pytest.fixture(scope="session")
+def features_path():
+    features = Path(__file__).resolve().parent / "media/features.parquet"
+    return features.__str__()
+
+
+@pytest.fixture(scope="session")
+def parameters_path():
+    parameters = Path(__file__).resolve().parent / "media/parameters-example.json"
+    return parameters.__str__()

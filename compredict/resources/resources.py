@@ -15,9 +15,9 @@ class Algorithm(BaseResource):
         for i, version in enumerate(self.versions):
             self.versions[i] = Version(algorithm_id=self.id, **version)
 
-    def run(self, data: Union[str, DataFrame, dict], **kwargs) -> Union["Task", "Result"]:
+    def run(self, features: Union[str, DataFrame, dict], **kwargs) -> Union["Task", "Result"]:
         """ Will call the last version of an algorithm."""
-        self._last_result = self.client.run_algorithm(self.id, data, **kwargs)
+        self._last_result = self.client.run_algorithm(self.id, features, **kwargs)
         return self.last_results
 
     def get_versions(self) -> List["Version"]:

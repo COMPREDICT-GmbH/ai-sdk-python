@@ -1,4 +1,8 @@
+from io import BufferedRandom
+from pathlib import Path
+
 import pytest
+from pandas import DataFrame
 
 from compredict.exceptions import ClientError, ServerError
 from compredict.resources import Task, Algorithm, Version
@@ -48,12 +52,47 @@ def test_run_algorithm(api_client, mocker, response_200):
 
     mocker.patch('requests.post', return_value=response_200)
 
-    response = api_client.run_algorithm(algorithm_id=algorithm_id, data=data,
+    response = api_client.run_algorithm(algorithm_id=algorithm_id, features=data,
                                         callback_url=callback_url,
                                         callback_param=callback_param)
 
     assert response.error == 'False'
     assert response.result == "some result"
+
+
+def test_run_algorithm_with_features_and_parameters_given_as_path_to_files(api_client, mocker, response_200,
+                                                                           features_path, parameters_path):
+    mocker.patch('requests.post', return_value=response_200)
+
+    response = api_client.run_algorithm(
+        algorithm_id="specific_algorithm",
+        version="2.1.1",
+        features=features_path,
+        parameters=parameters_path)
+    assert response.result == "some result"
+    assert response.error == 'False'
+
+
+def test_run_algorithm_with_features_given_as_file_and_parameters_as_dict(api_client, mocker, response_200,
+                                                                          features_path):
+    mocker.patch('requests.post', return_value=response_200)
+    parameters = {'test': 'parameters'}
+    response = api_client.run_algorithm(algorithm_id="specific_algorithm",
+                                        version="2.1.1",
+                                        features=features_path,
+                                        parameters=parameters)
+    assert response.result == "some result"
+    assert response.error == 'False'
+
+
+def test_run_algorithm_with_value_error(api_client, features_path):
+    parameters = Path(__file__).resolve().parent / "media/parameters.parquet"
+
+    with pytest.raises(ValueError):
+        api_client.run_algorithm(algorithm_id="specific_algorithm",
+                                 version="2.1.1",
+                                 features=features_path,
+                                 parameters=parameters.__str__())
 
 
 def test_run_algorithm_with_type_error(mocker, api_client):
@@ -64,7 +103,7 @@ def test_run_algorithm_with_type_error(mocker, api_client):
     mocker.patch('builtins.dict', side_effect=AttributeError)
 
     with pytest.raises(TypeError):
-        api_client.run_algorithm(algorithm_id=algorithm_id, data=data, callback_url=callback_url,
+        api_client.run_algorithm(algorithm_id=algorithm_id, features=data, callback_url=callback_url,
                                  callback_param=callback_param)
 
 
@@ -75,16 +114,17 @@ def test_run_algorithm_with_client_error(mocker, api_client, response_400):
     mocker.patch('requests.post', return_value=response_400)
 
     with pytest.raises(ClientError):
-        api_client.run_algorithm(algorithm_id=algorithm_id, data=data)
+        api_client.run_algorithm(algorithm_id=algorithm_id, features=data)
 
 
-def test_run_algorithm_with_server_error(mocker, api_client):
+def test_run_algorithm_with_server_error(mocker, api_client, response_500):
     algorithm_id = "id"
     data = {"data": "some_data"}
+    mocker.patch('requests.post', return_value=response_500)
     mocker.patch('compredict.connection.Connection.handle_response', side_effect=ServerError)
 
     with pytest.raises(ServerError):
-        api_client.run_algorithm(algorithm_id=algorithm_id, data=data)
+        api_client.run_algorithm(algorithm_id=algorithm_id, features=data)
 
 
 def test_map_resource_with_error_raised(api_client):
@@ -132,11 +172,50 @@ def test_map_collection(api_client, object):
         assert isinstance(result, Task)
 
 
-def test_process_data_with_value_error(api_client, data):
-    content_type = "text/html"
-
+@pytest.mark.parametrize(
+    'file_path, file_type',
+    [
+        (Path(__file__).resolve().parent / "media/parameters.parquet", "parameters"),
+        (Path(__file__).resolve().parent / "media/features.json", "features")
+    ]
+)
+def test_raise_errors_if_file_type_incorrect_with_value_error(file_path, file_type, api_client):
     with pytest.raises(ValueError):
-        api_client._api__process_data(content_type, data)
+        api_client._api__raise_error_if_file_type_incorrect(file_path.__str__(), file_type)
+
+
+@pytest.mark.parametrize(
+    'data, type_of_data, file, to_delete',
+    [
+        ({"test": 2200}, 'parameters', BufferedRandom, True),
+        ({"features": "some_features", "features_2": "different_features"}, "features", BufferedRandom, True),
+        ([{"features": "some_features", "features_2": "different_features"},
+          {"features": "some_features", "features_2": "different_features"}], "features", BufferedRandom, True),
+        (DataFrame({"features": "some_features", "features_2": "different_features"}, index=[0]), "features",
+         BufferedRandom, True),
+        (DataFrame([{"features": "some_features", "features_2": "different_features"},
+                    {"features": "some_features", "features_2": "different_features"}]), "features", BufferedRandom,
+         True)
+    ]
+)
+def test_process_data(data, type_of_data, file, to_delete, api_client):
+    temp_file, delete_file = api_client._api__process_data(data, type_of_data)
+    assert delete_file == to_delete
+    assert isinstance(temp_file.file, file)
+
+
+def test_process_features_data_provided_as_path_to_file(api_client):
+    features = Path(__file__).resolve().parent / "media/features.parquet"
+    temp_file, to_delete = api_client._api__process_data(features.__str__(), "features")
+    assert isinstance(temp_file, BufferedRandom)
+    assert not to_delete
+
+
+def test_process_parameters_data_provided_as_path_to_file(api_client):
+    parameters = Path(__file__).resolve().parent / "media/parameters-example.json"
+    temp_file, to_delete = api_client._api__process_data(parameters.__str__(), "parameters")
+    assert isinstance(temp_file, BufferedRandom)
+    assert not to_delete
 
 
 def test_build_get_arguments(api_client):
@@ -237,14 +316,15 @@ def test_cancel_task(api_client, mocker, response_202_cancelled_task):
     assert isinstance(cancelled_task, Task)
 
 
-def test_printing_error(mocker, api_client):
+def test_printing_error(mocker, api_client, response_500):
     algorithm_id = "id"
     data = {"data": "some_data"}
+    mocker.patch('requests.post', return_value=response_500)
     mocker.patch('compredict.connection.Connection.handle_response',
                  side_effect=ServerError("This is error that is going to be printed"))
 
     try:
-        api_client.run_algorithm(algorithm_id=algorithm_id, data=data)
+        api_client.run_algorithm(algorithm_id=algorithm_id, features=data)
     except ServerError as e:
         print(e)
         assert repr(e) == "This is error that is going to be printed"
@@ -266,16 +346,17 @@ def test_train_algorithm_with_client_error(mocker, api_client, response_400):
     mocker.patch('requests.post', return_value=response_400)
 
     with pytest.raises(ClientError):
-        api_client.train_algorithm(algorithm_id=algorithm_id, data=data, export_new_version=True)
+        api_client.train_algorithm(algorithm_id=algorithm_id, features=data, export_new_version=True)
 
 
-def test_train_algorithm_with_server_error(mocker, api_client):
+def test_train_algorithm_with_server_error(mocker, api_client, response_500):
     algorithm_id = "trainable-algorithm"
     data = {"data": "some_data"}
+    mocker.patch('requests.post', return_value=response_500)
     mocker.patch('compredict.connection.Connection.handle_response', side_effect=ServerError)
 
     with pytest.raises(ServerError):
-        api_client.train_algorithm(algorithm_id=algorithm_id, data=data, export_new_version=True)
+        api_client.train_algorithm(algorithm_id=algorithm_id, features=data, export_new_version=True)
 
 
 def test_generate_token(api_client, mocker, response_200_with_tokens_generated):

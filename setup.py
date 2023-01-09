@@ -15,6 +15,7 @@ dev_requirements = [
     'pytest~=6.2.4',
     'pytest-mock~=3.6.1',
     'pytest-cov~=2.12.1',
+    'fastparquet~=0.8.0'
 ]
 
 setup(
