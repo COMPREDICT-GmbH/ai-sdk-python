@@ -217,12 +217,12 @@ class api:
         In case of data provided as path to file, make sure that file is of correct type.
 
         In case of parameters provided as dict: create json file from dict.
-        In case of features provided as list or dict: create DataFrame from dict or list,
-        and then write DatFrame into parquet file.
+        In case of features provided as dict: create DataFrame from dict and then write
+        DataFrame into parquet file.
         In case of features provided as DataFrame: write DataFrame into parquet file.
 
         :param data: The data to be sent for computation and prediction.
-        :type data: dict | list| str | pandas
+        :type data: dict | str | pandas
         :param type_of_data: Data can be of type: 'features' or of type: 'parameters'.
         Features will be always converted into parquet file, whereas parameters into json file.
         :return: opened file, bool indicating if file should be removed afterwards.
@@ -233,13 +233,14 @@ class api:
             return open(data, "rb+"), False
 
         file = NamedTemporaryFile('wb+', delete=False)
+        if type_of_data == "parameters":
+            self.__write_json_file(file, data, compression=compression)
+
         if isinstance(data, dict):
             if type_of_data == 'parameters':
                 self.__write_json_file(file, data, compression=compression)
             else:
-                data = DataFrame(data, index=[0])
-        elif isinstance(data, list):
-            data = DataFrame(data)
+                data = DataFrame(data)
 
         if type_of_data == 'features':
             data.to_parquet(file.name, compression=compression)
@@ -277,7 +278,7 @@ class api:
 
     def run_algorithm(self,
                       algorithm_id: str,
-                      features: Union[str, DataFrame, dict, List[dict]],
+                      features: Union[str, DataFrame, dict],
                       version: Optional[str] = None,
                       evaluate: bool = True,
                       callback_url: Optional[Union[str, List[str]]] = None,
@@ -289,8 +290,8 @@ class api:
         Run the given algorithm id with the passed data. The user have the ability to toggle encryption and evaluation.
 
         :param algorithm_id: String identifier of the algorithm
-        :param features: Features can be specified as path to features .parquet file, dictionary,
-        list of dictionaries or pandas.Dataframe.
+        :param features: Features can be specified as path to features .parquet file, dictionary
+        or pandas.Dataframe.
         :param version: Choose the version of the algorithm you would like to call. Defaults to latest version.
         :param evaluate: Boolean to whether evaluate the results of predictions or not.
         :param callback_param: The callback additional parameter to be sent with results.
@@ -338,7 +339,7 @@ class api:
 
     def train_algorithm(self,
                         algorithm_id: str,
-                        features: Union[str, DataFrame, dict, List[dict]],
+                        features: Union[str, DataFrame, dict],
                         version: Optional[str] = None,
                         export_new_version: Optional[bool] = None,
                         parameters: Optional[Union[str, dict]] = None,
@@ -348,7 +349,8 @@ class api:
         Train fit algorithm with the passed data.
 
         :param algorithm_id: String identifier of the algorithm.
-        :param features: JSON format of the data given with the correct keys as specified in the algorithm's template.
+        :param features: Features can be specified as path to features .parquet file, dictionary
+        or pandas.Dataframe.
         :param version: Choose the version of the algorithm you would like to call. Default is latest version.
         :param export_new_version: The trained model will be exported to a new version if True.
                Otherwise, the requested version will be updated. If None, then the model’s default behavior
