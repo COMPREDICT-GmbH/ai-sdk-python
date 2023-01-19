@@ -46,7 +46,7 @@ def test_last_error(response_400, mocker, connection):
 
 def test_run_algorithm(api_client, mocker, response_200):
     algorithm_id = "id"
-    data = {"data": "some_data"}
+    data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     callback_url = ["1callback", "2callback"]
     callback_param = [{1: "first"}, {2: "second"}]
 
@@ -97,7 +97,7 @@ def test_run_algorithm_with_value_error(api_client, features_path):
 
 def test_run_algorithm_with_type_error(mocker, api_client):
     algorithm_id = "id"
-    data = {"data": "some_data"}
+    data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     callback_url = ["1callback", "2callback", "3callback"]
     callback_param = [{1: "first"}, {2: "second"}]
     mocker.patch('builtins.dict', side_effect=AttributeError)
@@ -110,7 +110,7 @@ def test_run_algorithm_with_type_error(mocker, api_client):
 def test_run_algorithm_with_client_error(mocker, api_client, response_400):
     api_client.connection.fail_on_error = True
     algorithm_id = "algorithm-slug"
-    data = {"data": "some_data"}
+    data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     mocker.patch('requests.post', return_value=response_400)
 
     with pytest.raises(ClientError):
@@ -119,7 +119,7 @@ def test_run_algorithm_with_client_error(mocker, api_client, response_400):
 
 def test_run_algorithm_with_server_error(mocker, api_client, response_500):
     algorithm_id = "id"
-    data = {"data": "some_data"}
+    data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     mocker.patch('requests.post', return_value=response_500)
     mocker.patch('compredict.connection.Connection.handle_response', side_effect=ServerError)
 
@@ -187,11 +187,9 @@ def test_raise_errors_if_file_type_incorrect_with_value_error(file_path, file_ty
 @pytest.mark.parametrize(
     'data, type_of_data, file, to_delete',
     [
-        ({"test": 2200}, 'parameters', BufferedRandom, True),
-        ({"features": "some_features", "features_2": "different_features"}, "features", BufferedRandom, True),
-        ([{"features": "some_features", "features_2": "different_features"},
-          {"features": "some_features", "features_2": "different_features"}], "features", BufferedRandom, True),
-        (DataFrame({"features": "some_features", "features_2": "different_features"}, index=[0]), "features",
+        ({"test": 2200, "another_test": [1, 4, 6]}, 'parameters', BufferedRandom, True),
+        ({"features": [1, 2, 4, 6, 8, 10], "features_2": [1, 5, 19, 34, 1, 4]}, "features", BufferedRandom, True),
+        (DataFrame({"features": [9, 0, 2, 5], "features_2": [0, 2, 3, 6]}), "features",
          BufferedRandom, True),
         (DataFrame([{"features": "some_features", "features_2": "different_features"},
                     {"features": "some_features", "features_2": "different_features"}]), "features", BufferedRandom,
@@ -216,6 +214,14 @@ def test_process_parameters_data_provided_as_path_to_file(api_client):
     temp_file, to_delete = api_client._api__process_data(parameters.__str__(), "parameters")
     assert isinstance(temp_file, BufferedRandom)
     assert not to_delete
+
+
+def test_process_features_with_value_error(api_client):
+    """Parquet file schema requires columns to be of the same length, the same
+    is, when dictionary is converted into pandas DataFrame."""
+    features = {"features": [1, 2, 4, 6, 0], "features_2": [1, 5, 19, 34, 1, 4]}
+    with pytest.raises(ValueError):
+        api_client._api__process_data(features, "features")
 
 
 def test_build_get_arguments(api_client):
@@ -318,7 +324,7 @@ def test_cancel_task(api_client, mocker, response_202_cancelled_task):
 
 def test_printing_error(mocker, api_client, response_500):
     algorithm_id = "id"
-    data = {"data": "some_data"}
+    data = data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     mocker.patch('requests.post', return_value=response_500)
     mocker.patch('compredict.connection.Connection.handle_response',
                  side_effect=ServerError("This is error that is going to be printed"))
@@ -332,7 +338,7 @@ def test_printing_error(mocker, api_client, response_500):
 
 def test_train_algorithm(mocker, api_client, response_200_with_job_id):
     algorithm_id = "algorithm-slug"
-    data = {"data": "some_data"}
+    data = data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     mocker.patch('requests.post', return_value=response_200_with_job_id)
     result_task = api_client.train_algorithm(algorithm_id, data)
     assert isinstance(result_task, Task)
@@ -342,7 +348,7 @@ def test_train_algorithm(mocker, api_client, response_200_with_job_id):
 def test_train_algorithm_with_client_error(mocker, api_client, response_400):
     api_client.connection.fail_on_error = True
     algorithm_id = "trainable-algorithm"
-    data = {"data": "some_data"}
+    data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     mocker.patch('requests.post', return_value=response_400)
 
     with pytest.raises(ClientError):
@@ -351,7 +357,7 @@ def test_train_algorithm_with_client_error(mocker, api_client, response_400):
 
 def test_train_algorithm_with_server_error(mocker, api_client, response_500):
     algorithm_id = "trainable-algorithm"
-    data = {"data": "some_data"}
+    data = {"data": [1, 2, 3], "test": [3, 4, 5]}
     mocker.patch('requests.post', return_value=response_500)
     mocker.patch('compredict.connection.Connection.handle_response', side_effect=ServerError)
 
