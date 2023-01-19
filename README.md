@@ -40,6 +40,8 @@ Configuration
 
 AI Core requires from the user, to authenticate with token, generated with user's AI CORE username and password.
 
+**WARNING**: Bear in mind, that this type of authentication is working only for v2 of AI Core API.
+
 **There are two ways in which user can generate needed token:**
 
 1. **Generate token directly with utility function** (this approach requires user to pass url to AICore as well):
@@ -195,7 +197,7 @@ The `run` function has the following signature:
 
 ~~~python
 Task|Result = algorithm.run(data, parameters=parameters, evaluate=True, encrypt=False, callback_url=None, 
-                            callback_param=None, file_content_type=None, monitor=True)
+                            callback_param=None, monitor=True)
 ~~~
 
 - `features`: data to be processed by the algorithm, it can be:
